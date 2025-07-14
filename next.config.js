@@ -4,7 +4,28 @@ const nextConfig = {
     serverActions: true,
   },
   images: {
-    domains: ['avatar.githubusercontent.com'],
+    domains: [
+      'avatar.githubusercontent.com',
+      'aanexa.com',
+      'www.aanexa.com'
+    ],
+    // Alternative: Moderne remotePatterns (falls domains deprecated wird)
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatar.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'aanexa.com',
+        pathname: '/wp-content/uploads/**',
+      },
+      {
+        protocol: 'https', 
+        hostname: 'www.aanexa.com',
+        pathname: '/wp-content/uploads/**',
+      }
+    ],
   },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
