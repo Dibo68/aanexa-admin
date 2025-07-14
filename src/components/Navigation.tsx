@@ -1,6 +1,6 @@
 'use client'
-
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -31,77 +31,180 @@ export default function Navigation({ currentPath }: NavigationProps) {
   }
 
   return (
-    <nav className="bg-white shadow">
+    <nav className="bg-white shadow-lg border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Logo und Brand */}
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900">Aanexa Admin</h1>
+            <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+              <Image
+                src="https://aanexa.com/wp-content/uploads/2025/07/Copy-of-Logo-001-1-color-removebg-preview.png"
+                alt="Aanexa Logo"
+                width={40}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-gray-900">Admin</h1>
+                <p className="text-xs text-gray-500 -mt-1">Dashboard</p>
+              </div>
+            </Link>
           </div>
           
-          <div className="flex items-center space-x-4">
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center space-x-1">
             <Link
               href="/dashboard"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 currentPath === '/dashboard' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-700 hover:text-gray-900'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              Dashboard
+              <span className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                </svg>
+                <span>Dashboard</span>
+              </span>
             </Link>
             
             <Link
               href="/dashboard/customers"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 currentPath === '/dashboard/customers' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-700 hover:text-gray-900'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              Customers
+              <span className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+                <span>Customers</span>
+              </span>
             </Link>
             
             <Link
               href="/dashboard/collections"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 currentPath === '/dashboard/collections' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-700 hover:text-gray-900'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              Collections
+              <span className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span>Collections</span>
+              </span>
             </Link>
             
             <Link
               href="/dashboard/upload"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 currentPath === '/dashboard/upload' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-700 hover:text-gray-900'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              Upload
+              <span className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span>Upload</span>
+              </span>
             </Link>
 
             <Link
               href="/dashboard/admins"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 currentPath === '/dashboard/admins' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-700 hover:text-gray-900'
+                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
-              Admins
+              <span className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Admins</span>
+              </span>
             </Link>
-            
+          </div>
+
+          {/* Logout Button */}
+          <div className="flex items-center">
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 disabled:opacity-50 transition-all duration-200"
             >
-              {isLoggingOut ? 'Logging out...' : 'Logout'}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      <div className="md:hidden border-t border-gray-200">
+        <div className="px-2 pt-2 pb-3 space-y-1">
+          <Link
+            href="/dashboard"
+            className={`block px-3 py-2 rounded-md text-base font-medium ${
+              currentPath === '/dashboard' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/dashboard/customers"
+            className={`block px-3 py-2 rounded-md text-base font-medium ${
+              currentPath === '/dashboard/customers' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            Customers
+          </Link>
+          <Link
+            href="/dashboard/collections"
+            className={`block px-3 py-2 rounded-md text-base font-medium ${
+              currentPath === '/dashboard/collections' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            Collections
+          </Link>
+          <Link
+            href="/dashboard/upload"
+            className={`block px-3 py-2 rounded-md text-base font-medium ${
+              currentPath === '/dashboard/upload' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            Upload
+          </Link>
+          <Link
+            href="/dashboard/admins"
+            className={`block px-3 py-2 rounded-md text-base font-medium ${
+              currentPath === '/dashboard/admins' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            Admins
+          </Link>
         </div>
       </div>
     </nav>
