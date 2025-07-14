@@ -40,9 +40,9 @@ export default function Navigation({ currentPath }: NavigationProps) {
               <Image
                 src="https://aanexa.com/wp-content/uploads/2025/07/Copy-of-Logo-001-1-color-removebg-preview.png"
                 alt="Aanexa Logo"
-                width={40}
-                height={40}
-                className="h-10 w-auto"
+                width={48}
+                height={48}
+                className="h-12 w-auto"
                 priority
               />
               <div className="hidden sm:block">
