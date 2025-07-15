@@ -21,14 +21,14 @@ export default function ProfilePage() {
       setLoading(true)
       setError('')
       
-      // Nur name und email updates erlauben
+      // Nur full_name und email updates erlauben
       const allowedUpdates: any = {}
-      if (updates.name !== undefined) allowedUpdates.name = updates.name
+      if (updates.full_name !== undefined) allowedUpdates.full_name = updates.full_name
       if (updates.email !== undefined) allowedUpdates.email = updates.email
       
       // Update admin profile in database
       const { error: updateError } = await supabase
-        .from('admin_users')  // ← KORRIGIERT: admin_users statt admins
+        .from('admin_users')
         .update({
           ...allowedUpdates,
           updated_at: new Date().toISOString()
