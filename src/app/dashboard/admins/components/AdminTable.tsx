@@ -23,7 +23,30 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
   const [editingAdmin, setEditingAdmin] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<Admin>>({})
 
-  const formatDate = (dateString: string) => {
+  // Super Admin Protection Logic
+  const superAdmins = admins.filter(admin => admin.role === 'super_admin' && admin.status === 'active')
+  const isLastActiveSuperAdmin = (admin: Admin) => {
+    return admin.role === 'super_admin' && admin.status === 'active' && superAdmins.length === 1
+  }
+
+  const canDeleteAdmin = (admin: Admin) => {
+    return !isLastActiveSuperAdmin(admin)
+  }
+
+  const canChangeRole = (admin: Admin) => {
+    return !isLastActiveSuperAdmin(admin)
+  })
+
+  const handleDeleteAdmin = (admin: Admin) => {
+    if (!canDeleteAdmin(admin)) {
+      alert('Cannot delete the last active Super Admin. At least one Super Admin must remain active.')
+      return
+    }
+    
+    if (confirm(`Are you sure you want to delete "${admin.name}"? This action cannot be undone.`)) {
+      onDelete(admin.id)
+    }
+  }
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -127,9 +150,18 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                     />
                   </div>
                 ) : (
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{admin.name}</div>
-                    <div className="text-sm text-gray-500">{admin.email}</div>
+                  <div className="flex items-center">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 flex items-center">
+                        {admin.name}
+                        {isLastActiveSuperAdmin(admin) && (
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" title="Protected: Last Active Super Admin">
+                            🔒 Protected
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">{admin.email}</div>
+                    </div>
                   </div>
                 )}
               </td>
@@ -139,6 +171,7 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                     value={editForm.role || admin.role}
                     onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value as 'super_admin' | 'admin' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={!canChangeRole(admin)}
                   >
                     <option value="admin">Admin</option>
                     <option value="super_admin">Super Admin</option>
@@ -159,6 +192,7 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                     value={editForm.status || admin.status}
                     onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={isLastActiveSuperAdmin(admin)}
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -211,9 +245,18 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                       </svg>
                     </button>
                     <button
-                      onClick={() => onDelete(admin.id)}
-                      className="text-red-600 hover:text-red-900 transition-colors"
-                      title="Delete Admin"
+                      onClick={() => handleDeleteAdmin(admin)}
+                      disabled={!canDeleteAdmin(admin)}
+                      className={`transition-colors ${
+                        canDeleteAdmin(admin)
+                          ? 'text-red-600 hover:text-red-900'
+                          : 'text-gray-300 cursor-not-allowed'
+                      }`}
+                      title={
+                        canDeleteAdmin(admin) 
+                          ? 'Delete Admin' 
+                          : 'Cannot delete last active Super Admin'
+                      }
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
