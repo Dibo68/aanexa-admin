@@ -131,7 +131,7 @@ jobs:
             // Cleanup old folders (keep only last 3)
             console.log('🧹 Cleaning up old folders...');
             const listResponse = await drive.files.list({
-              q: \`parents in \"\${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}\" and name contains \"aanexa-admin-\" and mimeType=\"application/vnd.google-apps.folder\" and trashed=false\`,
+              q: 'parents in \"${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}\" and name contains \"aanexa-admin-\" and mimeType=\"application/vnd.google-apps.folder\" and trashed=false',
               orderBy: 'createdTime desc',
               fields: 'files(id,name,createdTime)'
             });
@@ -174,4 +174,4 @@ jobs:
         echo "🚀 Aanexa Admin successfully synced to Google Drive!"
         echo "📅 Timestamp: $(date)"
         echo "📁 Check your 'Aanexa GitHub Sync' folder"
-        echo "🔄 Automatic cleanup: Only last 5 versions kept"
+        echo "🔄 Automatic cleanup: Only last 3 versions kept"
