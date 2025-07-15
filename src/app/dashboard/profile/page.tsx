@@ -226,18 +226,42 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Profile Form */}
-          <div className="grid lg:grid-cols-2 gap-8">
-            <ProfileForm
-              admin={currentAdmin}
-              onUpdate={handleProfileUpdate}
-              loading={loading}
-            />
-            
-            <PasswordChange
-              onPasswordChange={handlePasswordChange}
-              loading={loading}
-            />
+          {/* Profile Form Card */}
+          <div className="bg-white shadow-lg rounded-xl border border-gray-200 mb-12">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Edit Profile
+              </h3>
+            </div>
+            <div className="p-6">
+              <ProfileForm
+                admin={currentAdmin}
+                onUpdate={handleProfileUpdate}
+                loading={loading}
+              />
+              {/* Platz für zukünftige Features wie Avatar, Aktivitäten etc. */}
+            </div>
+          </div>
+
+          {/* Passwort-Bereich GANZ UNTEN mit großem Abstand */}
+          <div id="password" className="bg-white shadow-lg rounded-xl border border-gray-200 mt-16 mb-8">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0-1.104.896-2 2-2s2 .896 2 2m-6 0c0-1.104.896-2 2-2s2 .896 2 2m-6 0a2 2 0 012 2v2a2 2 0 01-2 2H6m6 0v2m0 0h2m-2 0h-2" />
+                </svg>
+                Change Password
+              </h3>
+            </div>
+            <div className="p-6">
+              <PasswordChange
+                onPasswordChange={handlePasswordChange}
+                loading={loading}
+              />
+            </div>
           </div>
         </div>
       </main>
