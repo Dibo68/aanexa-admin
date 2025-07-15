@@ -28,7 +28,7 @@ export default function ProfilePage() {
       
       // Update admin profile in database
       const { error: updateError } = await supabase
-        .from('admins')
+        .from('admin_users')  // ← KORRIGIERT: admin_users statt admins
         .update({
           ...allowedUpdates,
           updated_at: new Date().toISOString()
