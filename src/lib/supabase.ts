@@ -40,7 +40,7 @@ export const getCurrentUser = async () => {
 // Admin-spezifische Funktionen
 export const getAdminProfile = async (userId: string) => {
   const { data, error } = await supabase
-    .from('admins')
+    .from('admin_users')  // ← KORRIGIERT: admin_users statt admins
     .select('*')
     .eq('id', userId)
     .single()
@@ -50,7 +50,7 @@ export const getAdminProfile = async (userId: string) => {
 
 export const updateAdminLastLogin = async (userId: string) => {
   const { error } = await supabase
-    .from('admins')
+    .from('admin_users')  // ← KORRIGIERT: admin_users statt admins
     .update({ last_login: new Date().toISOString() })
     .eq('id', userId)
   
