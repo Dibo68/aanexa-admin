@@ -6,7 +6,7 @@ import Navigation from '@/components/Navigation'
 import ProfileForm from './components/ProfileForm'
 import PasswordChange from './components/PasswordChange'
 import { useAuth } from '@/context/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { supabase, AdminProfile } from '@/lib/supabase'
 
 export default function ProfilePage() {
   const { adminProfile, refreshProfile } = useAuth()
@@ -14,19 +14,23 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const handleProfileUpdate = async (updates: { name: string; email: string }) => {
+  const handleProfileUpdate = async (updates: Partial<AdminProfile>) => {
     if (!adminProfile) return
 
     try {
       setLoading(true)
       setError('')
       
+      // Nur name und email updates erlauben
+      const allowedUpdates: any = {}
+      if (updates.name !== undefined) allowedUpdates.name = updates.name
+      if (updates.email !== undefined) allowedUpdates.email = updates.email
+      
       // Update admin profile in database
       const { error: updateError } = await supabase
         .from('admins')
         .update({
-          name: updates.name,
-          email: updates.email,
+          ...allowedUpdates,
           updated_at: new Date().toISOString()
         })
         .eq('id', adminProfile.id)
@@ -36,7 +40,7 @@ export default function ProfilePage() {
       }
 
       // Update auth user email if changed
-      if (updates.email !== adminProfile.email) {
+      if (updates.email && updates.email !== adminProfile.email) {
         const { error: authError } = await supabase.auth.updateUser({
           email: updates.email
         })
