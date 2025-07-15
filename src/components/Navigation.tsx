@@ -189,7 +189,7 @@ export default function Navigation({ currentPath }: NavigationProps) {
                   </Link>
                   
                   <Link
-                    href="/dashboard/profile"
+                    href="/dashboard/profile#password"
                     onClick={() => setShowProfileDropdown(false)}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                   >
