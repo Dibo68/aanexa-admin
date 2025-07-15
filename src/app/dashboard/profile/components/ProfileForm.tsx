@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 interface AdminProfile {
   id: string
   email: string
-  name: string
+  full_name: string  // ← KORRIGIERT: war 'name'
   role: 'super_admin' | 'admin'
   status: 'active' | 'inactive'
   created_at: string
@@ -20,7 +20,7 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ admin, onUpdate, loading }: ProfileFormProps) {
   const [formData, setFormData] = useState({
-    name: admin.name,
+    full_name: admin.full_name,  // ← KORRIGIERT: war 'name'
     email: admin.email
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -29,7 +29,7 @@ export default function ProfileForm({ admin, onUpdate, loading }: ProfileFormPro
   // Reset form when admin changes
   useEffect(() => {
     setFormData({
-      name: admin.name,
+      full_name: admin.full_name,  // ← KORRIGIERT: war 'name'
       email: admin.email
     })
     setHasChanges(false)
@@ -38,7 +38,7 @@ export default function ProfileForm({ admin, onUpdate, loading }: ProfileFormPro
 
   // Track changes
   useEffect(() => {
-    const changed = formData.name !== admin.name || formData.email !== admin.email
+    const changed = formData.full_name !== admin.full_name || formData.email !== admin.email  // ← KORRIGIERT
     setHasChanges(changed)
   }, [formData, admin])
 
@@ -46,10 +46,10 @@ export default function ProfileForm({ admin, onUpdate, loading }: ProfileFormPro
     const newErrors: Record<string, string> = {}
 
     // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required'
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters long'
+    if (!formData.full_name.trim()) {  // ← KORRIGIERT: war 'name'
+      newErrors.full_name = 'Name is required'  // ← KORRIGIERT
+    } else if (formData.full_name.trim().length < 2) {  // ← KORRIGIERT
+      newErrors.full_name = 'Name must be at least 2 characters long'  // ← KORRIGIERT
     }
 
     // Email validation
@@ -80,7 +80,7 @@ export default function ProfileForm({ admin, onUpdate, loading }: ProfileFormPro
 
     try {
       await onUpdate({
-        name: formData.name.trim(),
+        full_name: formData.full_name.trim(),  // ← KORRIGIERT: war 'name'
         email: formData.email.trim().toLowerCase()
       })
     } catch (error) {
@@ -90,7 +90,7 @@ export default function ProfileForm({ admin, onUpdate, loading }: ProfileFormPro
 
   const handleReset = () => {
     setFormData({
-      name: admin.name,
+      full_name: admin.full_name,  // ← KORRIGIERT: war 'name'
       email: admin.email
     })
     setErrors({})
@@ -124,16 +124,16 @@ export default function ProfileForm({ admin, onUpdate, loading }: ProfileFormPro
           <input
             type="text"
             id="profile-name"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
+            value={formData.full_name}  {/* ← KORRIGIERT: war 'name' */}
+            onChange={(e) => handleInputChange('full_name', e.target.value)}  {/* ← KORRIGIERT */}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-              errors.name ? 'border-red-300 bg-red-50' : 'border-gray-300'
+              errors.full_name ? 'border-red-300 bg-red-50' : 'border-gray-300'  // ← KORRIGIERT
             }`}
             placeholder="Enter your full name"
             disabled={loading}
           />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+          {errors.full_name && (  /* ← KORRIGIERT: war 'name' */
+            <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>
           )}
         </div>
 
