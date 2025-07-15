@@ -35,7 +35,7 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
 
   const canChangeRole = (admin: Admin) => {
     return !isLastActiveSuperAdmin(admin)
-  })
+  }
 
   const handleDeleteAdmin = (admin: Admin) => {
     if (!canDeleteAdmin(admin)) {
@@ -47,6 +47,8 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
       onDelete(admin.id)
     }
   }
+
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -68,6 +70,20 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
 
   const handleEditSave = () => {
     if (editingAdmin) {
+      const admin = admins.find(a => a.id === editingAdmin)
+      
+      // Check if trying to change role of last super admin
+      if (admin && isLastActiveSuperAdmin(admin) && editForm.role !== 'super_admin') {
+        alert('Cannot change role of the last active Super Admin. At least one Super Admin must remain.')
+        return
+      }
+      
+      // Check if trying to deactivate last super admin
+      if (admin && isLastActiveSuperAdmin(admin) && editForm.status === 'inactive') {
+        alert('Cannot deactivate the last active Super Admin. At least one Super Admin must remain active.')
+        return
+      }
+      
       onUpdate(editingAdmin, editForm)
       setEditingAdmin(null)
       setEditForm({})
