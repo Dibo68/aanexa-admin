@@ -1,215 +1,219 @@
+// src/components/Navigation.tsx
 'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useAuth } from '@/context/AuthContext'
 
 interface NavigationProps {
   currentPath?: string
 }
 
 export default function Navigation({ currentPath }: NavigationProps) {
+  const { adminProfile, signOut } = useAuth()
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
-  const router = useRouter()
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      if (!target.closest('.profile-dropdown')) {
-        setShowProfileDropdown(false)
-      }
+  const menuItems = [
+    {
+      name: 'Dashboard',
+      href: '/dashboard',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+      )
+    },
+    {
+      name: 'Admins',
+      href: '/dashboard/admins',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+        </svg>
+      )
+    },
+    {
+      name: 'Customers',
+      href: '/dashboard/customers',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      )
+    },
+    {
+      name: 'Settings',
+      href: '/dashboard/settings',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )
     }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  ]
 
   const handleLogout = async () => {
-    setIsLoggingOut(true)
-    
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST'
-      })
-      
-      if (response.ok) {
-        router.push('/login')
-      }
+      setIsLoggingOut(true)
+      await signOut()
+      // Redirect wird durch AuthContext gehandelt
     } catch (error) {
       console.error('Logout error:', error)
-    } finally {
       setIsLoggingOut(false)
     }
+  }
+
+  const isCurrentPath = (href: string) => {
+    if (href === '/dashboard') {
+      return currentPath === '/dashboard'
+    }
+    return currentPath?.startsWith(href)
+  }
+
+  const getRoleDisplayName = (role: string) => {
+    return role === 'super_admin' ? 'Super Admin' : 'Admin'
+  }
+
+  const getRoleBadgeColor = (role: string) => {
+    return role === 'super_admin' 
+      ? 'bg-purple-100 text-purple-800' 
+      : 'bg-blue-100 text-blue-800'
   }
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo und Brand */}
+          {/* Logo und Hauptnavigation */}
           <div className="flex items-center">
-            <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+            {/* Logo */}
+            <Link href="/dashboard" className="flex items-center space-x-3">
               <Image
-                src="https://aanexa.com/wp-content/uploads/2025/07/Copy-of-Logo-001-1-color-removebg-preview.png"
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Aanexa%20Logo-E8nLIOGSqVMI4jzXNE9wGgTaOlFHBt.png"
                 alt="Aanexa Logo"
-                width={48}
-                height={48}
-                className="h-12 w-auto"
+                width={120}
+                height={40}
+                className="h-8 w-auto"
                 priority
               />
-              <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-900">Admin</h1>
-                <p className="text-xs text-gray-500 -mt-1">Dashboard</p>
+              <span className="text-xl font-semibold text-gray-900">Admin</span>
+            </Link>
+
+            {/* Hauptnavigation */}
+            <div className="hidden md:ml-10 md:flex md:space-x-1">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isCurrentPath(item.href)
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* User Menu */}
+          <div className="flex items-center space-x-4">
+            {/* User Info */}
+            {adminProfile && (
+              <div className="hidden md:flex md:items-center md:space-x-3">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(adminProfile.role)}`}>
+                  {getRoleDisplayName(adminProfile.role)}
+                </span>
+                <span className="text-sm text-gray-700 font-medium">
+                  {adminProfile.name}
+                </span>
               </div>
-            </Link>
-          </div>
-          
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-1">
-            <Link
-              href="/dashboard"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                currentPath === '/dashboard' 
-                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              <span className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                </svg>
-                <span>Dashboard</span>
-              </span>
-            </Link>
-            
-            <Link
-              href="/dashboard/customers"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                currentPath === '/dashboard/customers' 
-                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              <span className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
-                <span>Customers</span>
-              </span>
-            </Link>
-            
-            <Link
-              href="/dashboard/collections"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                currentPath === '/dashboard/collections' 
-                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              <span className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span>Collections</span>
-              </span>
-            </Link>
-            
-            <Link
-              href="/dashboard/upload"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                currentPath === '/dashboard/upload' 
-                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              <span className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <span>Upload</span>
-              </span>
-            </Link>
+            )}
 
-            <Link
-              href="/dashboard/admins"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                currentPath === '/dashboard/admins' 
-                  ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              <span className="flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>Admins</span>
-              </span>
-            </Link>
-          </div>
-
-          {/* Profile Dropdown & Logout */}
-          <div className="flex items-center space-x-2">
-            {/* Profile Dropdown */}
-            <div className="relative profile-dropdown">
+            {/* User Menu Dropdown */}
+            <div className="relative">
               <button
-                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               >
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {adminProfile?.name?.charAt(0)?.toUpperCase() || 'A'}
+                  </span>
                 </div>
-                <span className="hidden sm:block">Profile</span>
-                <svg className={`w-4 h-4 transition-transform duration-200 ${showProfileDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
               {/* Dropdown Menu */}
-              {showProfileDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900">Admin User</p>
-                    <p className="text-xs text-gray-500">admin@aanexa.com</p>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {/* User Info im Dropdown */}
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">
+                      {adminProfile?.name || 'Admin User'}
+                    </p>
+                    <p className="text-sm text-gray-500">{adminProfile?.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {getRoleDisplayName(adminProfile?.role || 'admin')}
+                    </p>
                   </div>
-                  
-                  <Link
-                    href="/dashboard/profile"
-                    onClick={() => setShowProfileDropdown(false)}
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    My Profile
-                  </Link>
-                  
-                  <Link
-                    href="/dashboard/profile#password"
-                    onClick={() => setShowProfileDropdown(false)}
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    Change Password
-                  </Link>
-                  
-                  <div className="border-t border-gray-100 mt-2 pt-2">
-                    <button
-                      onClick={handleLogout}
-                      disabled={isLoggingOut}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+
+                  {/* Menu Items */}
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard/profile"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                     >
                       <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      {isLoggingOut ? 'Logging out...' : 'Logout'}
-                    </button>
+                      My Profile
+                    </Link>
+
+                    <Link
+                      href="/dashboard/settings"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Settings
+                    </Link>
+
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        {isLoggingOut ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Signing out...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Sign Out
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -218,61 +222,33 @@ export default function Navigation({ currentPath }: NavigationProps) {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      <div className="md:hidden border-t border-gray-200">
-        <div className="px-2 pt-2 pb-3 space-y-1">
-          <Link
-            href="/dashboard"
-            className={`block px-3 py-2 rounded-md text-base font-medium ${
-              currentPath === '/dashboard' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/dashboard/customers"
-            className={`block px-3 py-2 rounded-md text-base font-medium ${
-              currentPath === '/dashboard/customers' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            Customers
-          </Link>
-          <Link
-            href="/dashboard/collections"
-            className={`block px-3 py-2 rounded-md text-base font-medium ${
-              currentPath === '/dashboard/collections' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            Collections
-          </Link>
-          <Link
-            href="/dashboard/upload"
-            className={`block px-3 py-2 rounded-md text-base font-medium ${
-              currentPath === '/dashboard/upload' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            Upload
-          </Link>
-          <Link
-            href="/dashboard/admins"
-            className={`block px-3 py-2 rounded-md text-base font-medium ${
-              currentPath === '/dashboard/admins' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            Admins
-          </Link>
+      {/* Mobile Menu Button - für später */}
+      <div className="md:hidden px-4 pb-3">
+        <div className="flex flex-col space-y-1">
+          {menuItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isCurrentPath(item.href)
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              {item.icon}
+              <span>{item.name}</span>
+            </Link>
+          ))}
         </div>
       </div>
+
+      {/* Overlay um Dropdown zu schließen */}
+      {showUserMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
     </nav>
   )
 }
