@@ -10,7 +10,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export interface AdminProfile {
   id: string
   email: string
-  name: string
+  full_name: string  // ← KORRIGIERT: war vorher 'name'
   role: 'super_admin' | 'admin'
   status: 'active' | 'inactive'
   created_at: string
@@ -40,7 +40,7 @@ export const getCurrentUser = async () => {
 // Admin-spezifische Funktionen
 export const getAdminProfile = async (userId: string) => {
   const { data, error } = await supabase
-    .from('admin_users')  // ← KORRIGIERT: admin_users statt admins
+    .from('admin_users')
     .select('*')
     .eq('id', userId)
     .single()
@@ -50,7 +50,7 @@ export const getAdminProfile = async (userId: string) => {
 
 export const updateAdminLastLogin = async (userId: string) => {
   const { error } = await supabase
-    .from('admin_users')  // ← KORRIGIERT: admin_users statt admins
+    .from('admin_users')
     .update({ last_login: new Date().toISOString() })
     .eq('id', userId)
   
