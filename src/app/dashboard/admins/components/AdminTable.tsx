@@ -108,22 +108,22 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
         <tbody className="bg-white divide-y divide-gray-200">
           {admins.map((admin) => (
             <tr key={admin.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4">
                 {editingAdmin === admin.id ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-[200px]">
                     <input
                       type="text"
                       value={editForm.name || ''}
                       onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      placeholder="Name"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Full Name"
                     />
                     <input
                       type="email"
                       value={editForm.email || ''}
                       onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      placeholder="Email"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Email Address"
                     />
                   </div>
                 ) : (
@@ -133,12 +133,12 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                   </div>
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4">
                 {editingAdmin === admin.id ? (
                   <select
                     value={editForm.role || admin.role}
                     onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value as 'super_admin' | 'admin' }))}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="admin">Admin</option>
                     <option value="super_admin">Super Admin</option>
@@ -153,12 +153,12 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                   </span>
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4">
                 {editingAdmin === admin.id ? (
                   <select
                     value={editForm.status || admin.status}
                     onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
