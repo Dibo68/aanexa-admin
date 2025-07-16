@@ -3,13 +3,14 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-// HIER IST DIE KORREKTUR: Die Typ-Definition für `params` wurde korrigiert.
+// Dies ist eine alternative, explizitere Schreibweise für die Funktion.
+// Sie tut genau das Gleiche, ist aber anders formatiert.
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const adminId = params.id;
+    const adminId = context.params.id; // Hier holen wir die ID aus dem context
     const { full_name, role, status } = await request.json();
 
     const supabaseAdmin = createClient(
