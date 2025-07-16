@@ -130,7 +130,7 @@ export default function Navigation({ currentPath }: NavigationProps) {
                   {getRoleDisplayName(adminProfile.role)}
                 </span>
                 <span className="text-sm text-gray-700 font-medium">
-                  {adminProfile.name}
+                  {adminProfile.full_name}
                 </span>
               </div>
             )}
@@ -143,7 +143,7 @@ export default function Navigation({ currentPath }: NavigationProps) {
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">
-                    {adminProfile?.name?.charAt(0)?.toUpperCase() || 'A'}
+                    {adminProfile?.full_name?.charAt(0)?.toUpperCase() || 'A'}
                   </span>
                 </div>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +157,7 @@ export default function Navigation({ currentPath }: NavigationProps) {
                   {/* User Info im Dropdown */}
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">
-                      {adminProfile?.name || 'Admin User'}
+                      {adminProfile?.full_name || 'Admin User'}
                     </p>
                     <p className="text-sm text-gray-500">{adminProfile?.email}</p>
                     <p className="text-xs text-gray-400 mt-1">
