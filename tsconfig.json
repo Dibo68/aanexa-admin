@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "es6"],
+    "target": "es2017", // Hinzugefügt, wie vom Next.js Build vorgeschlagen
+    "lib": ["dom", "dom.iterable", "esnext"], // es6 zu esnext geändert für bessere Kompatibilität
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
