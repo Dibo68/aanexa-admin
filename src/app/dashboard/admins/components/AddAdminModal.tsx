@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { AdminProfile } from '@/lib/supabase';
 
-// Die Omit<> Utility entfernt bestimmte Properties aus dem AdminProfile Typ
 type AdminCreationData = Omit<AdminProfile, 'id' | 'created_at' | 'updated_at' | 'last_login'>;
 
 interface AddAdminModalProps {
@@ -13,7 +12,7 @@ interface AddAdminModalProps {
 
 export default function AddAdminModal({ onClose, onAdd }: AddAdminModalProps) {
   const [formData, setFormData] = useState({
-    full_name: '', // KORRIGIERT
+    full_name: '',
     email: '',
     role: 'admin' as 'super_admin' | 'admin',
     status: 'active' as 'active' | 'inactive',
@@ -25,50 +24,26 @@ export default function AddAdminModal({ onClose, onAdd }: AddAdminModalProps) {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-
-    // Name validation
-    if (!formData.full_name.trim()) { // KORRIGIERT
-      newErrors.full_name = 'Name is required' // KORRIGIERT
-    }
-
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address'
-    }
-
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = 'Password is required'
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters long'
-    }
-
-    // Confirm password validation
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match'
-    }
-
+    if (!formData.full_name.trim()) newErrors.full_name = 'Name is required'
+    if (!formData.email.trim()) newErrors.email = 'Email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Please enter a valid email address'
+    if (!formData.password) newErrors.password = 'Password is required'
+    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters long'
+    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!validateForm()) {
-      return
-    }
-
+    if (!validateForm()) return
     setLoading(true)
-    
     try {
       await onAdd({
-        full_name: formData.full_name.trim(), // KORRIGIERT
+        full_name: formData.full_name.trim(),
         email: formData.email.trim().toLowerCase(),
         role: formData.role,
-        status: formData.status
+        status: formData.status,
       })
     } catch (error) {
       setErrors({ general: 'Failed to create admin account' })
@@ -79,189 +54,65 @@ export default function AddAdminModal({ onClose, onAdd }: AddAdminModalProps) {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }))
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Add New Administrator</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div className="px-6 py-4 border-b">
+          <h3 className="text-lg font-semibold">Add New Administrator</h3>
         </div>
-
-        {/* Modal Body */}
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          {errors.general && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-              {errors.general}
-            </div>
-          )}
-
-          {/* Name Field */}
           <div>
-            <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name <span className="text-red-500">*</span>
-            </label>
+            <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">Full Name</label>
             <input
               type="text"
               id="full_name"
               value={formData.full_name}
               onChange={(e) => handleInputChange('full_name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                errors.full_name ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
-              placeholder="Enter full name"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
-            {errors.full_name && (
-              <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>
-            )}
+            {errors.full_name && <p className="text-sm text-red-600">{errors.full_name}</p>}
           </div>
-          
-          {/* ... Rest des Formulars bleibt gleich ... */}
-          {/* Email Field */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address <span className="text-red-500">*</span>
-            </label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
             <input
               type="email"
               id="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
-              placeholder="admin@aanexa.com"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
+            {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
           </div>
-
-          {/* Role Field */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-              Role <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="role"
-              value={formData.role}
-              onChange={(e) => handleInputChange('role', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="admin">Admin</option>
-              <option value="super_admin">Super Admin</option>
-            </select>
-            <p className="mt-1 text-xs text-gray-500">
-              {formData.role === 'super_admin' 
-                ? 'Full system access including user management' 
-                : 'Standard admin access to customer and content management'
-              }
-            </p>
-          </div>
-
-          {/* Status Field */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              id="status"
-              value={formData.status}
-              onChange={(e) => handleInputChange('status', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-
-          {/* Password Field */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password <span className="text-red-500">*</span>
-            </label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
             <input
               type="password"
               id="password"
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
-              placeholder="Minimum 8 characters"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
+            {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
           </div>
-
-          {/* Confirm Password Field */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password <span className="text-red-500">*</span>
-            </label>
+           <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
             <input
               type="password"
               id="confirmPassword"
               value={formData.confirmPassword}
               onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                errors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-300'
-              }`}
-              placeholder="Confirm password"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-            )}
+            {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
           </div>
         </form>
-
-        {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Creating...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Create Admin
-              </>
-            )}
+        <div className="px-6 py-4 border-t flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+            {loading ? 'Creating...' : 'Create Admin'}
           </button>
         </div>
       </div>
