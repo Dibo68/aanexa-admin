@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Navigation from '@/components/Navigation'
 import AdminTable from './components/AdminTable'
 import AddAdminModal from './components/AddAdminModal'
-import { AdminProfile } from '@/lib/supabase'
+import { supabase, AdminProfile } from '@/lib/supabase'
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminProfile[]>([])
@@ -12,71 +12,58 @@ export default function AdminsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    // Simulierter API-Call mit korrekten Mock-Daten
-    setTimeout(() => {
-      setAdmins([
-        {
-          id: '1',
-          email: 'admin@aanexa.com',
-          full_name: 'Dibo Admin',
-          role: 'super_admin',
-          status: 'active',
-          created_at: '2024-07-01T10:00:00Z',
-          updated_at: '2024-07-01T10:00:00Z',
-          last_login: '2024-07-15T08:30:00Z'
-        },
-        {
-          id: '2',
-          email: 'support@aanexa.com',
-          full_name: 'Support Team',
-          role: 'admin',
-          status: 'active',
-          created_at: '2024-07-10T14:20:00Z',
-          updated_at: '2024-07-10T14:20:00Z',
-          last_login: '2024-07-14T16:45:00Z'
-        }
-      ])
+  // NEU: Funktion, um Admins aus Supabase zu laden
+  const fetchAdmins = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('*') // Holt alle Spalten, die wir brauchen
+        .order('created_at', { ascending: false }); // Sortiert die neusten zuerst
+
+      if (error) {
+        throw error
+      }
+
+      setAdmins(data || [])
+
+    } catch (err: any) {
+      console.error('Error fetching admins:', err)
+      setError('Could not fetch administrator data. Please try again.')
+    } finally {
       setLoading(false)
-    }, 500)
+    }
+  }
+
+  // useEffect Hook, der die neue Funktion beim Laden der Seite aufruft
+  useEffect(() => {
+    fetchAdmins()
   }, [])
 
   const handleAddAdmin = async (adminData: Omit<AdminProfile, 'id' | 'created_at' | 'updated_at' | 'last_login'>) => {
-    try {
-      const newAdmin: AdminProfile = {
-        ...adminData,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      setAdmins(prev => [...prev, newAdmin])
-      setShowAddModal(false)
-    } catch (error) {
-      setError('Failed to add admin')
+    // Diese Funktion passen wir im nächsten Schritt an
+    console.log("Neuer Admin soll hinzugefügt werden:", adminData)
+    // Zur Demonstration fügen wir ihn zur lokalen Liste hinzu und laden dann neu
+    const newAdmin: AdminProfile = {
+      ...adminData,
+      id: Date.now().toString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
+    setAdmins(prev => [newAdmin, ...prev])
+    setShowAddModal(false)
   }
 
   const handleDeleteAdmin = async (adminId: string) => {
-    // window.confirm ist in Coolify nicht sichtbar, daher verwenden wir es nur für die Mock-Phase
-    if (window.confirm('Are you sure you want to delete this admin?')) {
-      try {
-        setAdmins(prev => prev.filter(admin => admin.id !== adminId))
-      } catch (error) {
-        setError('Failed to delete admin')
-      }
-    }
+    console.log("Admin löschen:", adminId)
+    // Logik folgt
   }
 
   const handleUpdateAdmin = async (adminId: string, updates: Partial<AdminProfile>) => {
-    try {
-      setAdmins(prev => 
-        prev.map(admin => 
-          admin.id === adminId ? { ...admin, ...updates } as AdminProfile : admin
-        )
-      )
-    } catch (error) {
-      setError('Failed to update admin')
-    }
+    console.log("Admin updaten:", adminId, updates)
+    // Logik folgt
   }
 
   return (
@@ -106,6 +93,12 @@ export default function AdminsPage() {
               </button>
             </div>
           </div>
+
+          {error && (
+            <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
+              <span className="font-medium">Error!</span> {error}
+            </div>
+          )}
 
           <div className="bg-white shadow-lg rounded-xl border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
