@@ -4,20 +4,15 @@ import { useState, useEffect } from 'react'
 import Navigation from '@/components/Navigation'
 import AdminTable from './components/AdminTable'
 import AddAdminModal from './components/AddAdminModal'
+import { AdminProfile } from '@/lib/supabase' // Importiere den korrekten Typ
 
 // Interface für Admin-Daten
-interface Admin {
-  id: string
-  email: string
-  name: string
-  role: 'super_admin' | 'admin'
-  status: 'active' | 'inactive'
-  created_at: string
-  last_login?: string
-}
+// Wir verwenden jetzt direkt AdminProfile, um konsistent zu sein
+// Falls du hier eine abweichende Struktur brauchst, können wir das anpassen
+// Für jetzt ist es aber sauberer, den Typ aus supabase.ts zu nehmen
 
 export default function AdminsPage() {
-  const [admins, setAdmins] = useState<Admin[]>([])
+  const [admins, setAdmins] = useState<AdminProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState('')
@@ -30,19 +25,21 @@ export default function AdminsPage() {
         {
           id: '1',
           email: 'admin@aanexa.com',
-          name: 'Dibo Admin',
+          full_name: 'Dibo Admin', // Geändert von name zu full_name
           role: 'super_admin',
           status: 'active',
           created_at: '2024-07-01T10:00:00Z',
+          updated_at: '2024-07-01T10:00:00Z',
           last_login: '2024-07-15T08:30:00Z'
         },
         {
           id: '2',
           email: 'support@aanexa.com',
-          name: 'Support Team',
+          full_name: 'Support Team', // Geändert von name zu full_name
           role: 'admin',
           status: 'active',
           created_at: '2024-07-10T14:20:00Z',
+          updated_at: '2024-07-10T14:20:00Z',
           last_login: '2024-07-14T16:45:00Z'
         }
       ])
@@ -50,13 +47,14 @@ export default function AdminsPage() {
     }, 500)
   }, [])
 
-  const handleAddAdmin = async (adminData: Omit<Admin, 'id' | 'created_at'>) => {
+  const handleAddAdmin = async (adminData: Omit<AdminProfile, 'id' | 'created_at' | 'updated_at' | 'last_login'>) => {
     try {
       // Hier später Supabase API-Call
-      const newAdmin: Admin = {
+      const newAdmin: AdminProfile = {
         ...adminData,
         id: Date.now().toString(),
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
       
       setAdmins(prev => [...prev, newAdmin])
@@ -77,12 +75,12 @@ export default function AdminsPage() {
     }
   }
 
-  const handleUpdateAdmin = async (adminId: string, updates: Partial<Admin>) => {
+  const handleUpdateAdmin = async (adminId: string, updates: Partial<AdminProfile>) => {
     try {
       // Hier später Supabase API-Call
       setAdmins(prev => 
         prev.map(admin => 
-          admin.id === adminId ? { ...admin, ...updates } : admin
+          admin.id === adminId ? { ...admin, ...updates } as AdminProfile : admin
         )
       )
     } catch (error) {
