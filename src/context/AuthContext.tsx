@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, AdminProfile, getAdminProfile, updateAdminLastLogin } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
   user: User | null
@@ -14,113 +15,74 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  adminProfile: null,
-  loading: true,
-  signIn: async () => ({ error: null }),
-  signOut: async () => {},
-  refreshProfile: async () => {}
-})
+// Hier wird ein Standardwert gesetzt, der aber nie verwendet wird, wenn der Provider korrekt genutzt wird.
+const AuthContext = createContext<AuthContextType>(null!)
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+  return useContext(AuthContext)
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
-  // Lade initial Session und Admin-Profil
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+    // Diese Funktion prüft die Session und aktualisiert den Zustand
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      // Wenn eine Session existiert, lade das Profil
       if (session?.user) {
-        loadAdminProfile(session.user.id)
+        setUser(session.user)
+        const { data: profile } = await getAdminProfile(session.user.id)
+        setAdminProfile(profile)
       } else {
+        // Wenn keine Session existiert, setze alles zurück
+        setUser(null)
+        setAdminProfile(null)
+      }
+      // WICHTIG: Am Ende der Prüfung immer das Laden beenden
+      setLoading(false)
+    }
+
+    checkUser()
+
+    // Diese Funktion lauscht auf zukünftige Änderungen (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setAdminProfile(null)
         setLoading(false)
+        router.push('/login')
+      } else if (session?.user) {
+        setUser(session.user)
+        // Lade das Profil nach dem Einloggen
+        getAdminProfile(session.user.id).then(({ data: profile }) => {
+          setAdminProfile(profile)
+          setLoading(false)
+        })
       }
     })
 
-    // Listen für Auth-Änderungen
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null)
-        
-        if (session?.user) {
-          await loadAdminProfile(session.user.id)
-          
-          // Update last login bei neuer Session
-          if (event === 'SIGNED_IN') {
-            await updateAdminLastLogin(session.user.id)
-          }
-        } else {
-          setAdminProfile(null)
-          setLoading(false)
-        }
-      }
-    )
-
     return () => subscription.unsubscribe()
-  }, [])
-
-  const loadAdminProfile = async (userId: string) => {
-    try {
-      const { data, error } = await getAdminProfile(userId)
-      
-      if (error) {
-        console.error('Error loading admin profile:', error)
-        setAdminProfile(null)
-      } else {
-        setAdminProfile(data)
-      }
-    } catch (error) {
-      console.error('Error loading admin profile:', error)
-      setAdminProfile(null)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [router])
 
   const signIn = async (email: string, password: string) => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) {
-        return { error }
-      }
-
-      // Session wird automatisch durch onAuthStateChange verarbeitet
-      return { error: null }
-    } catch (error) {
-      return { error }
-    }
+    return supabase.auth.signInWithPassword({ email, password })
   }
 
   const signOut = async () => {
-    try {
-      setLoading(true)
-      await supabase.auth.signOut()
-      // State wird automatisch durch onAuthStateChange gecleared
-    } catch (error) {
-      console.error('Error signing out:', error)
-      setLoading(false)
-    }
+    await supabase.auth.signOut()
   }
 
   const refreshProfile = async () => {
     if (user) {
-      await loadAdminProfile(user.id)
+      setLoading(true)
+      const { data } = await getAdminProfile(user.id)
+      setAdminProfile(data)
+      setLoading(false)
     }
   }
 
@@ -133,9 +95,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     refreshProfile
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
