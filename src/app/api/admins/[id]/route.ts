@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
+// HIER IST DIE KORREKTUR: Die Typ-Definition für `params` wurde korrigiert.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
