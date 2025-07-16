@@ -1,49 +1,40 @@
 'use client'
 
 import { useState } from 'react'
-
-interface Admin {
-  id: string
-  email: string
-  name: string
-  role: 'super_admin' | 'admin'
-  status: 'active' | 'inactive'
-  created_at: string
-  last_login?: string
-}
+import { AdminProfile } from '@/lib/supabase'
 
 interface AdminTableProps {
-  admins: Admin[]
+  admins: AdminProfile[]
   loading: boolean
   onDelete: (adminId: string) => void
-  onUpdate: (adminId: string, updates: Partial<Admin>) => void
+  onUpdate: (adminId: string, updates: Partial<AdminProfile>) => void
 }
 
 export default function AdminTable({ admins, loading, onDelete, onUpdate }: AdminTableProps) {
   const [editingAdmin, setEditingAdmin] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<Partial<Admin>>({})
+  const [editForm, setEditForm] = useState<Partial<AdminProfile>>({})
 
   // Super Admin Protection Logic
   const superAdmins = admins.filter(admin => admin.role === 'super_admin' && admin.status === 'active')
-  const isLastActiveSuperAdmin = (admin: Admin) => {
+  const isLastActiveSuperAdmin = (admin: AdminProfile) => {
     return admin.role === 'super_admin' && admin.status === 'active' && superAdmins.length === 1
   }
 
-  const canDeleteAdmin = (admin: Admin) => {
+  const canDeleteAdmin = (admin: AdminProfile) => {
     return !isLastActiveSuperAdmin(admin)
   }
 
-  const canChangeRole = (admin: Admin) => {
+  const canChangeRole = (admin: AdminProfile) => {
     return !isLastActiveSuperAdmin(admin)
   }
 
-  const handleDeleteAdmin = (admin: Admin) => {
+  const handleDeleteAdmin = (admin: AdminProfile) => {
     if (!canDeleteAdmin(admin)) {
       alert('Cannot delete the last active Super Admin. At least one Super Admin must remain active.')
       return
     }
     
-    if (confirm(`Are you sure you want to delete "${admin.name}"? This action cannot be undone.`)) {
+    if (confirm(`Are you sure you want to delete "${admin.full_name}"? This action cannot be undone.`)) {
       onDelete(admin.id)
     }
   }
@@ -58,10 +49,10 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
     })
   }
 
-  const handleEditStart = (admin: Admin) => {
+  const handleEditStart = (admin: AdminProfile) => {
     setEditingAdmin(admin.id)
     setEditForm({
-      name: admin.name,
+      full_name: admin.full_name,
       email: admin.email,
       role: admin.role,
       status: admin.status
@@ -152,8 +143,8 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                   <div className="space-y-2 min-w-[200px]">
                     <input
                       type="text"
-                      value={editForm.name || ''}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      value={editForm.full_name || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Full Name"
                     />
@@ -169,7 +160,7 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                   <div className="flex items-center">
                     <div>
                       <div className="text-sm font-medium text-gray-900 flex items-center">
-                        {admin.name}
+                        {admin.full_name}
                         {isLastActiveSuperAdmin(admin) && (
                           <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" title="Protected: Last Active Super Admin">
                             🔒 Protected
