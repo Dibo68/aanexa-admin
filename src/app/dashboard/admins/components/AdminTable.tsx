@@ -2,19 +2,18 @@
 
 import { useState } from 'react'
 import { AdminProfile } from '@/lib/supabase'
-import { useRouter } from 'next/navigation' // NEU: Wir importieren den Router
 
 interface AdminTableProps {
   admins: AdminProfile[]
   loading: boolean
   onUpdate: (adminId: string, updates: Partial<AdminProfile>) => Promise<{ error?: string }>
   onDelete: (adminId: string) => void
+  onDataChange: () => void; // HIER IST DIE ÄNDERUNG: Die Tabelle erwartet die Funktion
 }
 
-export default function AdminTable({ admins, loading, onUpdate, onDelete }: AdminTableProps) {
+export default function AdminTable({ admins, loading, onUpdate, onDelete, onDataChange }: AdminTableProps) {
   const [editingAdmin, setEditingAdmin] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<AdminProfile>>({})
-  const router = useRouter() // NEU: Wir holen uns den Router
 
   const handleEditStart = (admin: AdminProfile) => {
     setEditingAdmin(admin.id)
@@ -29,19 +28,15 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete }: Admi
     if (!editingAdmin) return;
     const result = await onUpdate(editingAdmin, editForm);
     
-    setEditingAdmin(null); // Bearbeitungsmodus immer beenden
+    setEditingAdmin(null);
 
     if (result.error) {
       alert(`Error saving: ${result.error}`);
     } else {
-      // HIER IST DIE KORREKTUR:
-      // Wir sagen dem Browser, er soll die aktuelle Seite neu vom Server laden.
-      // Das ist der zuverlässigste Weg, um die neuen Daten anzuzeigen.
-      router.refresh(); 
+      // HIER IST DIE KORREKTUR: Wir rufen die Funktion auf, um die Daten neu zu laden.
+      onDataChange();
     }
   }
-
-  // Die restliche Logik der Komponente bleibt gleich...
   
   if (loading) return <div className="p-6 text-center">Loading...</div>
 
