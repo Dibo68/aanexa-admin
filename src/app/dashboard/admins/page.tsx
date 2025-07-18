@@ -6,7 +6,7 @@ import AdminTable from './components/AdminTable'
 import AddAdminModal from './components/AddAdminModal'
 import { supabase, AdminProfile } from '@/lib/supabase'
 
-// Dieser Typ wird für das Hinzufügen-Modal benötigt
+// Dieser Typ wird für das Hinzufügen-Modal benötigt, das wir später bauen
 export type NewAdminData = {
   email: string
   full_name: string
@@ -20,6 +20,7 @@ export default function AdminsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState('')
 
+  // Diese Funktion holt die Daten aus der DB
   const fetchAdmins = async () => {
     try {
       setLoading(true)
@@ -42,17 +43,17 @@ export default function AdminsPage() {
     fetchAdmins()
   }, [])
 
+  // Diese Funktion bauen wir später
   const handleAddAdmin = async (adminData: NewAdminData) => {
-    // Diese Funktion implementieren wir, sobald das Bearbeiten funktioniert.
     console.log("Add admin wird als nächstes implementiert.", adminData)
   }
 
-  // HIER IST DIE NEUE LOGIK:
+  // HIER IST DIE NEUE LOGIK: Diese Funktion speichert die Änderungen
   const handleUpdateAdmin = async (adminId: string, updates: Partial<AdminProfile>) => {
-    setError(''); // Fehler zurücksetzen
+    setError(''); // Fehler vom letzten Versuch zurücksetzen
     try {
       const response = await fetch(`/api/admins/${adminId}`, {
-        method: 'PATCH',
+        method: 'PATCH', // PATCH ist die Methode für Teil-Updates
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
@@ -68,7 +69,7 @@ export default function AdminsPage() {
     } catch (err: any) {
       console.error("Update failed:", err);
       setError(err.message);
-      // Optional: Lade die Liste neu, um die alten Daten wiederherzustellen, falls der Server-Call fehlschlägt
+      // Lade die Liste neu, um die alten Daten wiederherzustellen, falls der Server-Call fehlschlägt
       await fetchAdmins();
     }
   }
