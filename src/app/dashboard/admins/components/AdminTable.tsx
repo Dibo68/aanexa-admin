@@ -2,23 +2,24 @@
 
 import { useState } from 'react'
 import { AdminProfile } from '@/lib/supabase'
+import { updateAdmin } from '@/lib/actions' // NEU: Wir importieren unsere Server Action
 
 interface AdminTableProps {
   admins: AdminProfile[]
   loading: boolean
   onDelete: (adminId: string) => void
-  onUpdate: (adminId: string, updates: Partial<AdminProfile>) => void
+  // onUpdate wird nicht mehr benötigt, da die Komponente sich selbst aktualisiert
 }
 
-export default function AdminTable({ admins, loading, onDelete, onUpdate }: AdminTableProps) {
+export default function AdminTable({ admins, loading, onDelete }: AdminTableProps) {
   const [editingAdmin, setEditingAdmin] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<AdminProfile>>({})
 
+  // ... (isLastActiveSuperAdmin, handleDeleteAdmin, formatDate, handleEditStart, handleEditCancel bleiben gleich)
   const superAdmins = admins.filter(admin => admin.role === 'super_admin' && admin.status === 'active')
   const isLastActiveSuperAdmin = (admin: AdminProfile) => {
     return admin.role === 'super_admin' && admin.status === 'active' && superAdmins.length === 1
   }
-
   const handleDeleteAdmin = (admin: AdminProfile) => {
     if (!isLastActiveSuperAdmin(admin)) {
       onDelete(admin.id)
@@ -26,7 +27,6 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
       alert('Cannot delete the last active Super Admin.')
     }
   }
-  
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Never'
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -34,28 +34,29 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
       hour: '2-digit', minute: '2-digit'
     })
   }
-
   const handleEditStart = (admin: AdminProfile) => {
     setEditingAdmin(admin.id)
-    setEditForm({
-      full_name: admin.full_name,
-      email: admin.email,
-      role: admin.role,
-      status: admin.status
-    })
+    setEditForm({ full_name: admin.full_name, role: admin.role, status: admin.status })
   }
-
-  const handleEditSave = () => {
-    if (editingAdmin) {
-      onUpdate(editingAdmin, editForm)
-      setEditingAdmin(null)
-      setEditForm({})
-    }
-  }
-
   const handleEditCancel = () => {
     setEditingAdmin(null)
     setEditForm({})
+  }
+
+  // NEUE LOGIK FÜR handleEditSave
+  const handleEditSave = async () => {
+    if (!editingAdmin) return;
+
+    // Rufe die sichere Server Action auf
+    const result = await updateAdmin(editingAdmin, editForm);
+
+    if (result.error) {
+      alert('Fehler beim Speichern: ' + result.error);
+    }
+
+    // Schließe den Bearbeitungsmodus
+    setEditingAdmin(null);
+    // Die Seite wird durch "revalidatePath" in der Server Action automatisch aktualisiert.
   }
 
   if (loading) {
@@ -65,6 +66,7 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
+        {/* ... (thead bleibt unverändert) ... */}
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Administrator</th>
@@ -77,6 +79,7 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
         <tbody className="bg-white divide-y divide-gray-200">
           {admins.map((admin) => (
             <tr key={admin.id}>
+              {/* ... (<td>s für Administrator, Role, Status, Last Login bleiben gleich) ... */}
               <td className="px-6 py-4 whitespace-nowrap">
                 {editingAdmin === admin.id ? (
                   <input
@@ -86,11 +89,9 @@ export default function AdminTable({ admins, loading, onDelete, onUpdate }: Admi
                     className="w-full px-2 py-1 border border-gray-300 rounded-md"
                   />
                 ) : (
-                  <div className="flex items-center">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{admin.full_name}</div>
-                      <div className="text-sm text-gray-500">{admin.email}</div>
-                    </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{admin.full_name}</div>
+                    <div className="text-sm text-gray-500">{admin.email}</div>
                   </div>
                 )}
               </td>
