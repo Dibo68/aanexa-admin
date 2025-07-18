@@ -10,6 +10,7 @@ interface AuthContextType {
   adminProfile: AdminProfile | null
   loading: boolean
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void> // Funktion wieder hinzugefügt
 }
 
 const AuthContext = createContext<AuthContextType>(null!)
@@ -23,39 +24,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        setUser(session.user)
-        const { data: profile } = await getAdminProfile(session.user.id)
-        setAdminProfile(profile)
+        setUser(session.user);
+        const { data: profile } = await getAdminProfile(session.user.id);
+        setAdminProfile(profile);
       }
-      setLoading(false)
-    }
+      setLoading(false);
+    };
+    getSession();
 
-    getInitialSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          setUser(session.user)
-          getAdminProfile(session.user.id).then(({data}) => setAdminProfile(data))
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null)
-          setAdminProfile(null)
-          router.push('/login')
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        getAdminProfile(session.user.id).then(({ data }) => setAdminProfile(data));
+      } else {
+        setAdminProfile(null);
+        router.push('/login');
       }
-    )
+      setLoading(false);
+    });
 
-    return () => subscription.unsubscribe()
-  }, [router])
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-  }
+    await supabase.auth.signOut();
+  };
   
-  const value = { user, adminProfile, loading, signOut }
+  // Funktion wieder vollständig implementiert
+  const refreshProfile = async () => {
+    if (user) {
+      const { data: profile } = await getAdminProfile(user.id);
+      setAdminProfile(profile);
+    }
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
+  const value = { user, adminProfile, loading, signOut, refreshProfile };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
