@@ -5,7 +5,7 @@ import Navigation from '@/components/Navigation'
 import AdminTable from './components/AdminTable'
 import AddAdminModal from './components/AddAdminModal'
 import { supabase, AdminProfile } from '@/lib/supabase'
-import { updateAdmin } from '@/lib/actions'
+import { updateAdmin, addAdmin } from '@/lib/actions' // NEU: addAdmin importieren
 import { NewAdminData } from '@/lib/types'
 
 export default function AdminsPage() {
@@ -14,10 +14,8 @@ export default function AdminsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState('')
 
-  // Diese Funktion holt die Daten. Wir geben sie jetzt an die Tabelle weiter.
   const fetchAdmins = async () => {
     try {
-      // setLoading(true) // Ladeanzeige nur beim ersten Mal
       setError('')
       const { data, error } = await supabase
         .from('admin_users')
@@ -38,8 +36,17 @@ export default function AdminsPage() {
     fetchAdmins();
   }, []);
 
+  // HIER IST DIE NEUE LOGIK:
   const handleAddAdmin = async (adminData: NewAdminData) => {
-    // Implementieren wir als Nächstes
+    setError('')
+    const result = await addAdmin(adminData);
+
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setShowAddModal(false); // Modal bei Erfolg schließen
+      await fetchAdmins(); // Liste neu laden, um den neuen Admin anzuzeigen
+    }
   }
 
   const handleDeleteAdmin = async (adminId: string) => {
@@ -72,7 +79,7 @@ export default function AdminsPage() {
               loading={loading}
               onUpdate={updateAdmin}
               onDelete={handleDeleteAdmin}
-              onDataChange={fetchAdmins} // HIER IST DIE ÄNDERUNG: Wir geben die Funktion weiter
+              onDataChange={fetchAdmins}
             />
           </div>
         </div>
@@ -80,7 +87,10 @@ export default function AdminsPage() {
 
       {showAddModal && (
         <AddAdminModal
-          onClose={() => setShowAddModal(false)}
+          onClose={() => {
+            setShowAddModal(false)
+            setError('') // Fehler zurücksetzen, wenn das Modal geschlossen wird
+          }}
           onAdd={handleAddAdmin}
         />
       )}
