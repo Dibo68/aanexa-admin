@@ -8,7 +8,7 @@ interface AdminTableProps {
   loading: boolean
   onUpdate: (adminId: string, updates: Partial<AdminProfile>) => Promise<{ error?: string }>
   onDelete: (adminId: string) => void
-  onDataChange: () => void; // HIER IST DIE ÄNDERUNG: Die Tabelle erwartet die Funktion
+  onDataChange: () => void;
 }
 
 export default function AdminTable({ admins, loading, onUpdate, onDelete, onDataChange }: AdminTableProps) {
@@ -33,9 +33,25 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
     if (result.error) {
       alert(`Error saving: ${result.error}`);
     } else {
-      // HIER IST DIE KORREKTUR: Wir rufen die Funktion auf, um die Daten neu zu laden.
       onDataChange();
     }
+  }
+
+  // HIER IST DIE LOGIK FÜR DIE SCHÖNE ANZEIGE
+  const getRoleDisplayName = (role: string) => {
+    return role === 'super_admin' ? 'Super Admin' : 'Admin'
+  }
+
+  const getRoleBadgeColor = (role: string) => {
+    return role === 'super_admin' 
+      ? 'bg-purple-100 text-purple-800' 
+      : 'bg-blue-100 text-blue-800'
+  }
+
+  const getStatusBadgeColor = (status: string) => {
+    return status === 'active'
+      ? 'bg-green-100 text-green-800'
+      : 'bg-red-100 text-red-800'
   }
   
   if (loading) return <div className="p-6 text-center">Loading...</div>
@@ -80,7 +96,10 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
                     <option value="super_admin">Super Admin</option>
                   </select>
                  ) : (
-                  <span>{admin.role}</span>
+                  // HIER WIRD DIE KORREKTE ANZEIGE VERWENDET
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(admin.role)}`}>
+                    {getRoleDisplayName(admin.role)}
+                  </span>
                  )}
               </td>
               <td className="px-6 py-4">
@@ -94,7 +113,10 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
                     <option value="inactive">Inactive</option>
                   </select>
                 ) : (
-                  <span>{admin.status}</span>
+                  // HIER WIRD DIE KORREKTE ANZEIGE VERWENDET
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${getStatusBadgeColor(admin.status)}`}>
+                    {admin.status}
+                  </span>
                 )}
               </td>
               <td className="px-6 py-4 text-right">
