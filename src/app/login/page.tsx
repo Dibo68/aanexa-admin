@@ -128,7 +128,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-gray-500">
-            © 2024 Aanexa. Secure admin access for AI service management.
+            © 2025 Aanexa. Secure admin access for AI service management.
           </p>
         </div>
       </div>
