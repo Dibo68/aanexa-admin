@@ -19,6 +19,10 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
     setEditForm({ full_name: admin.full_name, role: admin.role, status: admin.status })
   }
 
+  const handleEditCancel = () => {
+    setEditingAdmin(null)
+  }
+
   const handleEditSave = async () => {
     if (!editingAdmin) return;
     const result = await onUpdate(editingAdmin, editForm);
@@ -26,15 +30,81 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
     if (result.error) {
       alert(`Error: ${result.error}`);
     } else {
-      onDataChange(); // Hier wird die Liste neu geladen
+      onDataChange();
     }
   }
 
-  if (loading) return <div className="p-4">Loading...</div>
+  if (loading) return <div className="p-4 text-center">Loading...</div>
 
   return (
     <table className="min-w-full divide-y divide-gray-200">
-      {/* ... (Tabelle wie gehabt) ... */}
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Administrator</th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {admins.map((admin) => (
+          <tr key={admin.id}>
+            <td className="px-6 py-4">
+              {editingAdmin === admin.id ? (
+                <input
+                  type="text"
+                  value={editForm.full_name}
+                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                  className="w-full px-2 py-1 border rounded"
+                />
+              ) : (
+                <div>
+                  <div>{admin.full_name}</div>
+                  <div className="text-sm text-gray-500">{admin.email}</div>
+                </div>
+              )}
+            </td>
+            <td className="px-6 py-4">
+               {editingAdmin === admin.id ? (
+                <select
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })}
+                  className="w-full px-2 py-1 border rounded"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+               ) : (
+                <span>{admin.role}</span>
+               )}
+            </td>
+            <td className="px-6 py-4">
+              {editingAdmin === admin.id ? (
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                  className="w-full px-2 py-1 border rounded"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              ) : (
+                <span>{admin.status}</span>
+              )}
+            </td>
+            <td className="px-6 py-4 text-right">
+              {editingAdmin === admin.id ? (
+                <>
+                  <button onClick={handleEditSave} className="text-green-600 mr-4">Save</button>
+                  <button onClick={handleEditCancel} className="text-gray-600">Cancel</button>
+                </>
+              ) : (
+                <button onClick={() => handleEditStart(admin)} className="text-indigo-600">Edit</button>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
     </table>
   )
 }
