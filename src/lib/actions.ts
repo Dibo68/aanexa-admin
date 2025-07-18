@@ -1,48 +1,83 @@
 // src/lib/actions.ts
 
-'use server' // Diese Zeile sagt Next.js: "Code in dieser Datei läuft nur sicher auf dem Server"
+'use server'
 
 import { createClient } from '@supabase/supabase-js'
-import { revalidatePath } from 'next/cache' // Ein Werkzeug von Next.js, um Seiten neu zu laden
+import { revalidatePath } from 'next/cache'
+import { NewAdminData } from './types' // Wir importieren den Bauplan
 
-// Definieren, welche Daten wir für ein Update erwarten
 interface AdminUpdateData {
   full_name?: string;
   role?: 'admin' | 'super_admin';
   status?: 'active' | 'inactive';
 }
 
-// Dies ist unsere sichere Server-Funktion zum Aktualisieren eines Admins
 export async function updateAdmin(adminId: string, updates: AdminUpdateData) {
+  // ... (Diese Funktion existiert bereits und bleibt unverändert)
   try {
-    // 1. Erstelle einen sicheren Supabase-Client, der Admin-Rechte hat
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-
-    // 2. Führe den Update-Befehl in der Datenbank aus
     const { data, error } = await supabaseAdmin
       .from('admin_users')
       .update(updates)
       .eq('id', adminId)
       .select()
       .single();
-
-    // 3. Wenn ein Fehler auftritt, gib ihn zurück
     if (error) {
-      console.error('Supabase Update Error:', error);
       return { error: 'Datenbankfehler: Admin konnte nicht aktualisiert werden.' };
     }
-
-    // 4. Bei Erfolg: Sage Next.js, dass die Admin-Seite neu geladen werden muss,
-    //    damit die Änderungen sichtbar werden.
     revalidatePath('/dashboard/admins');
-
-    // 5. Gib die erfolgreiche Antwort zurück
     return { data };
-
   } catch (err) {
     return { error: 'Ein unerwarteter Serverfehler ist aufgetreten.' };
+  }
+}
+
+// HIER IST DIE NEUE FUNKTION
+export async function addAdmin(adminData: NewAdminData) {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // 1. Erstelle den Benutzer im sicheren Auth-System
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: adminData.email,
+      password: adminData.password_hash,
+      email_confirm: true,
+    });
+
+    if (authError) {
+      if (authError.message.includes('unique constraint')) {
+        return { error: 'Ein Admin mit dieser E-Mail existiert bereits.' };
+      }
+      throw authError;
+    }
+
+    // 2. Erstelle den passenden Eintrag in unserer "admin_users" Tabelle
+    const { error: profileError } = await supabaseAdmin
+      .from('admin_users')
+      .insert({
+        id: authData.user.id,
+        full_name: adminData.full_name,
+        email: adminData.email,
+        role: adminData.role,
+        status: adminData.status,
+      });
+    
+    if (profileError) {
+      // Wenn das Profil nicht erstellt werden kann, lösche den Auth-Benutzer wieder
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      throw profileError;
+    }
+
+    revalidatePath('/dashboard/admins');
+    return { data: 'Admin erfolgreich erstellt.' };
+
+  } catch (err: any) {
+    return { error: err.message || 'Ein Serverfehler ist aufgetreten.' };
   }
 }
