@@ -10,7 +10,6 @@ interface AuthContextType {
   adminProfile: AdminProfile | null
   loading: boolean
   signOut: () => Promise<void>
-  refreshProfile: () => Promise<void> // Funktion ist wieder da
 }
 
 const AuthContext = createContext<AuthContextType>(null!)
@@ -23,17 +22,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user
-      setUser(currentUser ?? null)
-      if (currentUser) {
-        const { data: profile } = await getAdminProfile(currentUser.id)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        const { data: profile } = await getAdminProfile(session.user.id)
         setAdminProfile(profile)
-      } else {
-        setAdminProfile(null)
       }
       setLoading(false)
-    })
+    }
+
+    checkSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN') {
+          setUser(session.user)
+          getAdminProfile(session.user.id).then(({ data }) => setAdminProfile(data))
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setAdminProfile(null)
+        }
+      }
+    )
+
     return () => subscription.unsubscribe()
   }, [])
 
@@ -41,15 +53,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut()
     router.push('/login')
   }
-  
-  const refreshProfile = async () => {
-    if (user) {
-      const { data: profile } = await getAdminProfile(user.id)
-      setAdminProfile(profile)
-    }
-  }
 
-  const value = { user, adminProfile, loading, signOut, refreshProfile }
+  const value = { user, adminProfile, loading, signOut }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
