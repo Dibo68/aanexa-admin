@@ -6,7 +6,7 @@ import AdminTable from './components/AdminTable'
 import AddAdminModal from './components/AddAdminModal'
 import { supabase, AdminProfile } from '@/lib/supabase'
 import { updateAdmin } from '@/lib/actions'
-import { NewAdminData } from '@/lib/types' // NEU: Import vom zentralen Ort
+import { NewAdminData } from '@/lib/types'
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminProfile[]>([])
@@ -14,18 +14,27 @@ export default function AdminsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const fetchAdmins = async () => {
+  // Diese Funktion holt die Daten. Wir geben sie jetzt an die Tabelle weiter.
+  const fetchAdmins = async () => {
+    try {
+      // setLoading(true) // Ladeanzeige nur beim ersten Mal
+      setError('')
       const { data, error } = await supabase
         .from('admin_users')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) setError('Could not fetch admins.');
-      else setAdmins(data || []);
+      if (error) throw error
+      setAdmins(data || []);
       
-      setLoading(false);
-    };
+    } catch (err: any) {
+      setError('Could not fetch administrator data.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchAdmins();
   }, []);
 
@@ -63,6 +72,7 @@ export default function AdminsPage() {
               loading={loading}
               onUpdate={updateAdmin}
               onDelete={handleDeleteAdmin}
+              onDataChange={fetchAdmins} // HIER IST DIE ÄNDERUNG: Wir geben die Funktion weiter
             />
           </div>
         </div>
