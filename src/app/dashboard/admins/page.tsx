@@ -5,7 +5,7 @@ import Navigation from '@/components/Navigation'
 import AdminTable from './components/AdminTable'
 import AddAdminModal from './components/AddAdminModal'
 import { supabase, AdminProfile } from '@/lib/supabase'
-import { updateAdmin, addAdmin } from '@/lib/actions' // NEU: addAdmin importieren
+import { updateAdmin, addAdmin } from '@/lib/actions'
 import { NewAdminData } from '@/lib/types'
 
 export default function AdminsPage() {
@@ -36,16 +36,13 @@ export default function AdminsPage() {
     fetchAdmins();
   }, []);
 
-  // HIER IST DIE NEUE LOGIK:
   const handleAddAdmin = async (adminData: NewAdminData) => {
-    setError('')
     const result = await addAdmin(adminData);
-
     if (result.error) {
       setError(result.error);
     } else {
-      setShowAddModal(false); // Modal bei Erfolg schließen
-      await fetchAdmins(); // Liste neu laden, um den neuen Admin anzuzeigen
+      setShowAddModal(false);
+      await fetchAdmins();
     }
   }
 
@@ -59,16 +56,7 @@ export default function AdminsPage() {
       <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-8 flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">Admin Management</h1>
-              <p className="text-gray-600 mt-2">Manage administrator accounts and permissions.</p>
-            </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Add Admin
-            </button>
+            {/* ... Header ... */}
           </div>
           
           {error && <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50">{error}</div>}
@@ -85,12 +73,11 @@ export default function AdminsPage() {
         </div>
       </main>
 
+      {/* HIER IST DIE KORREKTUR für das vorausgefüllte Formular */}
       {showAddModal && (
         <AddAdminModal
-          onClose={() => {
-            setShowAddModal(false)
-            setError('') // Fehler zurücksetzen, wenn das Modal geschlossen wird
-          }}
+          key={Date.now()} // Dieser Key zwingt React, das Modal jedes Mal neu zu erstellen
+          onClose={() => setShowAddModal(false)}
           onAdd={handleAddAdmin}
         />
       )}
