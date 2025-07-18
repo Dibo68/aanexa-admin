@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import { AdminProfile } from '@/lib/supabase'
 
+// Die Typen für die Funktionen, die diese Komponente von außen erhält
 interface AdminTableProps {
   admins: AdminProfile[]
   loading: boolean
   onUpdate: (adminId: string, updates: Partial<AdminProfile>) => Promise<{ error?: string }>
+  onDelete: (adminId: string) => void // DIESE ZEILE WURDE KORRIGIERT
 }
 
-export default function AdminTable({ admins, loading, onUpdate }: AdminTableProps) {
+export default function AdminTable({ admins, loading, onUpdate, onDelete }: AdminTableProps) {
   const [editingAdmin, setEditingAdmin] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<AdminProfile>>({})
 
@@ -31,6 +33,8 @@ export default function AdminTable({ admins, loading, onUpdate }: AdminTableProp
     setEditingAdmin(null);
   }
 
+  // Die restliche Logik der Komponente bleibt gleich...
+  
   if (loading) return <div className="p-6 text-center">Loading...</div>
 
   return (
@@ -51,7 +55,7 @@ export default function AdminTable({ admins, loading, onUpdate }: AdminTableProp
                 {editingAdmin === admin.id ? (
                   <input
                     type="text"
-                    value={editForm.full_name}
+                    value={editForm.full_name || ''}
                     onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
                     className="w-full px-2 py-1 border rounded"
                   />
@@ -65,7 +69,7 @@ export default function AdminTable({ admins, loading, onUpdate }: AdminTableProp
               <td className="px-6 py-4">
                  {editingAdmin === admin.id ? (
                   <select
-                    value={editForm.role}
+                    value={editForm.role || 'admin'}
                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })}
                     className="w-full px-2 py-1 border rounded"
                   >
@@ -79,7 +83,7 @@ export default function AdminTable({ admins, loading, onUpdate }: AdminTableProp
               <td className="px-6 py-4">
                 {editingAdmin === admin.id ? (
                   <select
-                    value={editForm.status}
+                    value={editForm.status || 'active'}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
                     className="w-full px-2 py-1 border rounded"
                   >
