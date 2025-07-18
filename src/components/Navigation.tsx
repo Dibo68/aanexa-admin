@@ -17,7 +17,7 @@ export default function Navigation({ currentPath }: NavigationProps) {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     await signOut()
-    // setIsLoggingOut(false) ist nicht nötig, da die Seite neu lädt
+    // Die Weiterleitung wird vom AuthContext gehandhabt
   }
 
   const menuItems = [
@@ -26,6 +26,11 @@ export default function Navigation({ currentPath }: NavigationProps) {
     { name: 'Customers', href: '/dashboard/customers' },
     { name: 'Settings', href: '/dashboard/settings' }
   ]
+  
+  const isCurrentPath = (href: string) => {
+    if (href === '/dashboard') return currentPath === '/dashboard'
+    return currentPath?.startsWith(href)
+  }
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200">
@@ -43,6 +48,23 @@ export default function Navigation({ currentPath }: NavigationProps) {
               />
               <span className="text-xl font-semibold text-gray-900">Admin</span>
             </Link>
+            
+            {/* DIESER BLOCK HAT GEFEHLT UND WURDE WIEDERHERGESTELLT */}
+            <div className="hidden md:ml-10 md:flex md:space-x-1">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isCurrentPath(item.href)
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center">
