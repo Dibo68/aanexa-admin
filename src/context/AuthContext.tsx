@@ -8,9 +8,9 @@ import { useRouter } from 'next/navigation'
 interface AuthContextType {
   user: User | null
   adminProfile: AdminProfile | null
-  loading: boolean
+  loading: boolean // Wir behalten 'loading' bei, um eine Ladeanzeige zu ermöglichen
   signOut: () => Promise<void>
-  refreshProfile: () => Promise<void> // Funktion wieder hinzugefügt
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>(null!)
@@ -20,40 +20,39 @@ export const useAuth = () => useContext(AuthContext)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // Startet immer im Ladezustand
   const router = useRouter()
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+    // onAuthStateChange wird einmal beim Laden mit dem initialen Zustand aufgerufen.
+    // Das macht eine separate getSession()-Abfrage überflüssig und verhindert Race Conditions.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Wenn ein Benutzer eingeloggt ist
         setUser(session.user);
         const { data: profile } = await getAdminProfile(session.user.id);
         setAdminProfile(profile);
-      }
-      setLoading(false);
-    };
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        getAdminProfile(session.user.id).then(({ data }) => setAdminProfile(data));
       } else {
+        // Wenn kein Benutzer eingeloggt ist
+        setUser(null);
         setAdminProfile(null);
-        router.push('/login');
       }
+      // WICHTIG: Erst nachdem alles geklärt ist, wird der Ladezustand beendet.
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [router]);
+    // Aufräumfunktion, wenn die Komponente verlassen wird
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // Dieser Hook läuft nur einmal beim Start der App
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Der onAuthStateChange Listener oben wird dies erkennen und den Rest erledigen
+    router.push('/login');
   };
   
-  // Funktion wieder vollständig implementiert
   const refreshProfile = async () => {
     if (user) {
       const { data: profile } = await getAdminProfile(user.id);
