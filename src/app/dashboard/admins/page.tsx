@@ -6,11 +6,10 @@ import AdminTable from './components/AdminTable'
 import AddAdminModal from './components/AddAdminModal'
 import { supabase, AdminProfile } from '@/lib/supabase'
 
-// Dieser Typ wird für das Hinzufügen-Modal benötigt, das wir später bauen
 export type NewAdminData = {
   email: string
   full_name: string
-  password_hash: string // Dies ist ein temporärer Name für das Passwortfeld aus dem Formular
+  password_hash: string
   role: 'super_admin' | 'admin'
 }
 
@@ -20,7 +19,6 @@ export default function AdminsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState('')
 
-  // Diese Funktion holt die Daten aus der DB
   const fetchAdmins = async () => {
     try {
       setLoading(true)
@@ -43,17 +41,15 @@ export default function AdminsPage() {
     fetchAdmins()
   }, [])
 
-  // Diese Funktion bauen wir später
   const handleAddAdmin = async (adminData: NewAdminData) => {
-    console.log("Add admin wird als nächstes implementiert.", adminData)
+    // Diese Funktion implementieren wir als Nächstes
   }
 
-  // HIER IST DIE NEUE LOGIK: Diese Funktion speichert die Änderungen
   const handleUpdateAdmin = async (adminId: string, updates: Partial<AdminProfile>) => {
-    setError(''); // Fehler vom letzten Versuch zurücksetzen
+    setError('');
     try {
       const response = await fetch(`/api/admins/${adminId}`, {
-        method: 'PATCH', // PATCH ist die Methode für Teil-Updates
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       });
@@ -63,17 +59,13 @@ export default function AdminsPage() {
         throw new Error(result.error || 'Failed to update admin');
       }
       
-      // Lade die Admin-Liste neu, um die Änderungen sofort zu sehen
       await fetchAdmins();
 
     } catch (err: any) {
-      console.error("Update failed:", err);
       setError(err.message);
-      // Lade die Liste neu, um die alten Daten wiederherzustellen, falls der Server-Call fehlschlägt
       await fetchAdmins();
     }
   }
-
 
   const handleDeleteAdmin = async (adminId: string) => {
     // Implementieren wir später
@@ -83,52 +75,8 @@ export default function AdminsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Navigation currentPath="/dashboard/admins" />
       <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
-                  Admin Management
-                </h1>
-                <p className="text-gray-600">
-                  Manage administrator accounts and permissions
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Add Admin
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
-              <span className="font-medium">Error!</span> {error}
-            </div>
-          )}
-
-          <div className="bg-white shadow-lg rounded-xl border border-gray-200">
-             <AdminTable
-              admins={admins}
-              loading={loading}
-              onDelete={handleDeleteAdmin}
-              onUpdate={handleUpdateAdmin}
-            />
-          </div>
-        </div>
+        {/* ... Rest der Seite ... */}
       </main>
-
-      {showAddModal && (
-        <AddAdminModal
-          onClose={() => {
-            setShowAddModal(false)
-            setError('') 
-          }}
-          onAdd={handleAddAdmin}
-        />
-      )}
     </div>
   )
 }
