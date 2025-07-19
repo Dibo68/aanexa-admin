@@ -12,29 +12,16 @@ export default function AdminsPage() {
   const [error, setError] = useState('')
 
   const fetchAdmins = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('admin_users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setAdmins(data || []);
-
-    } catch (err: any) {
-      console.error("Error fetching admins:", err.message);
-      setError('Could not fetch administrator data. ' + err.message);
-    } finally {
-      // Dieser Block wird IMMER ausgeführt, auch wenn es einen Fehler gibt.
-      // Das stellt sicher, dass der Lade-Spinner immer verschwindet.
-      setLoading(false);
-    }
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) setError('Could not fetch admins.');
+    else setAdmins(data || []);
+    
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -48,13 +35,20 @@ export default function AdminsPage() {
         <div className="bg-white shadow-lg rounded-xl border border-gray-200 p-6">
            <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">Admin Management</h1>
           
-          {error && <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50">{error}</div>}
+          {/* ======================= DEBUG-ANZEIGE START ======================= */}
+          <div className="bg-gray-100 p-4 my-4 rounded-lg border border-gray-300">
+            <h3 className="font-bold text-gray-700">Debug-Info: empfangene Admin-Daten</h3>
+            <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+              {JSON.stringify(admins, null, 2)}
+            </pre>
+          </div>
+          {/* ======================== DEBUG-ANZEIGE ENDE ======================== */}
 
           <AdminTable
             admins={admins}
             loading={loading}
             onUpdate={updateAdmin}
-            onDataChange={fetchAdmins} // Die fetchAdmins-Funktion wird hier übergeben
+            onDataChange={fetchAdmins}
           />
         </div>
       </main>
