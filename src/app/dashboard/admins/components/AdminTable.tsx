@@ -35,13 +35,9 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
   }
   
   const getRoleDisplayName = (role: string) => role === 'super_admin' ? 'Super Admin' : 'Admin'
-  const getRoleBadgeColor = (role: string) => role === 'super_admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-  const getStatusBadgeColor = (status: string) => status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-
 
   if (loading) return <div className="p-4 text-center">Loading...</div>
-  if (admins.length === 0) return <div className="p-4 text-center">No administrators found.</div>
-
+  if (!admins || admins.length === 0) return <div className="p-4 text-center">No administrators found.</div>
 
   return (
     <table className="min-w-full divide-y divide-gray-200">
@@ -60,7 +56,7 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
               {editingAdmin === admin.id ? (
                 <input
                   type="text"
-                  value={editForm.full_name}
+                  value={editForm.full_name || ''}
                   onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
                   className="w-full px-2 py-1 border rounded"
                 />
@@ -74,7 +70,7 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
             <td className="px-6 py-4">
                {editingAdmin === admin.id ? (
                 <select
-                  value={editForm.role}
+                  value={editForm.role || 'admin'}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })}
                   className="w-full px-2 py-1 border rounded"
                 >
@@ -82,15 +78,13 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
                   <option value="super_admin">Super Admin</option>
                 </select>
                ) : (
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(admin.role)}`}>
-                  {getRoleDisplayName(admin.role)}
-                </span>
+                <span>{getRoleDisplayName(admin.role)}</span>
                )}
             </td>
             <td className="px-6 py-4">
               {editingAdmin === admin.id ? (
                 <select
-                  value={editForm.status}
+                  value={editForm.status || 'active'}
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
                   className="w-full px-2 py-1 border rounded"
                 >
@@ -98,9 +92,7 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
                   <option value="inactive">Inactive</option>
                 </select>
               ) : (
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${getStatusBadgeColor(admin.status)}`}>
-                  {admin.status}
-                </span>
+                <span className="capitalize">{admin.status}</span>
               )}
             </td>
             <td className="px-6 py-4 text-right">
