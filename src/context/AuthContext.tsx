@@ -10,7 +10,7 @@ interface AuthContextType {
   adminProfile: AdminProfile | null
   loading: boolean
   signOut: () => Promise<void>
-  refreshProfile: () => Promise<void> // Funktion ist wieder da
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>(null!)
