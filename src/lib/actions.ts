@@ -1,3 +1,4 @@
+// src/lib/actions.ts
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
@@ -9,28 +10,25 @@ const getSupabaseAdmin = () => createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// HILFSFUNKTION FÜR DEN SICHERHEITS-CHECK
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('admin_users')
-    .select('id')
+    .select('id', { count: 'exact' })
     .eq('role', 'super_admin')
     .eq('status', 'active');
   
-  if (error) return true; // Im Zweifel blockieren
-  return data.length === 1 && data[0].id === adminId;
+  if (error) return true;
+  const isAdminAmongThem = data?.some(admin => admin.id === adminId);
+  return count === 1 && isAdminAmongThem;
 };
-
 
 export async function updateAdmin(adminId: string, updates: Partial<NewAdminData>) {
   if (await isLastSuperAdmin(adminId) && (updates.role !== 'super_admin' || updates.status !== 'active')) {
     return { error: 'You cannot change the role or status of the last active Super Admin.' };
   }
-  
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from('admin_users').update(updates).eq('id', adminId);
-  
   if (error) return { error: error.message };
   revalidatePath('/dashboard/admins');
   return { data };
@@ -43,9 +41,7 @@ export async function addAdmin(adminData: NewAdminData) {
     password: adminData.password_hash,
     email_confirm: true,
   });
-
   if (authError) return { error: authError.message };
-
   const { error: profileError } = await supabase.from('admin_users').insert({
     id: authData.user.id,
     full_name: adminData.full_name,
@@ -53,26 +49,26 @@ export async function addAdmin(adminData: NewAdminData) {
     role: adminData.role,
     status: adminData.status,
   });
-  
   if (profileError) {
     await supabase.auth.admin.deleteUser(authData.user.id);
     return { error: profileError.message };
   }
-
   revalidatePath('/dashboard/admins');
   return { data: 'Admin created successfully.' };
 }
 
+// HIER IST DIE NEUE, ROBUSTE DELETE-FUNKTION
 export async function deleteAdmin(adminId: string) {
   if (await isLastSuperAdmin(adminId)) {
     return { error: 'You cannot delete the last active Super Admin.' };
   }
-
   const supabase = getSupabaseAdmin();
+  // Supabase löscht den Eintrag in 'admin_users' automatisch mit,
+  // wenn wir die User-ID aus 'auth.users' löschen (CASCADE DELETE).
   const { error } = await supabase.auth.admin.deleteUser(adminId);
-
-  if (error) return { error: error.message };
-  
+  if (error) {
+    return { error: `Failed to delete user: ${error.message}` };
+  }
   revalidatePath('/dashboard/admins');
   return { data: 'Admin deleted successfully.' };
 }
