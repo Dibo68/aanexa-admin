@@ -28,22 +28,25 @@ export default function AdminsPage() {
   }, [fetchAdmins]);
 
   const handleAddAdmin = async (adminData: NewAdminData) => {
+    setError('');
     const result = await addAdmin(adminData);
-    if (result.error) setError(result.error);
-    else {
+    if (result.error) {
+      setError(result.error);
+    } else {
       setShowAddModal(false);
       fetchAdmins();
     }
   }
 
   const handleDeleteAdmin = async (adminId: string) => {
+    setError('');
     if (window.confirm('Are you sure you want to delete this admin? This action is irreversible.')) {
       const result = await deleteAdmin(adminId);
       if (result.error) {
-        setError(result.error);
-        alert(`Error: ${result.error}`);
+        setError(result.error); // Zeigt den Fehler jetzt im roten Kasten an
+      } else {
+        fetchAdmins();
       }
-      else fetchAdmins();
     }
   }
 
@@ -76,7 +79,7 @@ export default function AdminsPage() {
 
       {showAddModal && (
         <AddAdminModal
-          key={Date.now()}
+          key={Date.now()} // FIX: Setzt das Formular bei jedem Öffnen zurück
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddAdmin}
         />
