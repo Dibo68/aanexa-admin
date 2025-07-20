@@ -76,7 +76,7 @@ export default function AdminsPage() {
 
       {showAddModal && (
         <AddAdminModal
-          key={Date.now()} // FIX: Setzt das Formular bei jedem Öffnen zurück
+          key={Date.now()}
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddAdmin}
         />
