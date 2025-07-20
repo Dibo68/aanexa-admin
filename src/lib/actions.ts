@@ -18,7 +18,7 @@ const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
     .eq('role', 'super_admin')
     .eq('status', 'active');
   
-  if (error) return true;
+  if (error) return true; // Fail safe
   const isAdminAmongThem = data?.some(admin => admin.id === adminId);
   return count === 1 && isAdminAmongThem;
 };
