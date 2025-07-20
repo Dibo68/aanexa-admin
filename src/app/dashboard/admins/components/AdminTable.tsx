@@ -8,9 +8,10 @@ interface AdminTableProps {
   loading: boolean
   onUpdate: (adminId: string, updates: Partial<AdminProfile>) => Promise<{ error?: string }>
   onDataChange: () => void;
+  onDelete: (adminId: string) => void; // DIESE ZEILE WURDE WIEDER HINZUGEFÜGT
 }
 
-export default function AdminTable({ admins, loading, onUpdate, onDataChange }: AdminTableProps) {
+export default function AdminTable({ admins, loading, onUpdate, onDataChange, onDelete }: AdminTableProps) {
   const [editingAdmin, setEditingAdmin] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<AdminProfile>>({})
 
@@ -29,9 +30,9 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
     setEditingAdmin(null);
     if (result.error) {
       alert(`Error: ${result.error}`);
+    } else {
+      onDataChange();
     }
-    // Dieser Aufruf sorgt für die sofortige Aktualisierung
-    onDataChange();
   }
   
   const getRoleDisplayName = (role: string) => role === 'super_admin' ? 'Super Admin' : 'Admin'
@@ -53,15 +54,24 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
         {admins.map((admin) => (
           <tr key={admin.id}>
             <td className="px-6 py-4">
-              <div>
-                <div>{admin.full_name}</div>
-                <div className="text-sm text-gray-500">{admin.email}</div>
-              </div>
+              {editingAdmin === admin.id ? (
+                <input
+                  type="text"
+                  value={editForm.full_name || ''}
+                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                  className="w-full px-2 py-1 border rounded"
+                />
+              ) : (
+                <div>
+                  <div>{admin.full_name}</div>
+                  <div className="text-sm text-gray-500">{admin.email}</div>
+                </div>
+              )}
             </td>
             <td className="px-6 py-4">
                {editingAdmin === admin.id ? (
                 <select
-                  value={editForm.role}
+                  value={editForm.role || 'admin'}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })}
                   className="w-full px-2 py-1 border rounded"
                 >
@@ -75,7 +85,7 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
             <td className="px-6 py-4">
               {editingAdmin === admin.id ? (
                 <select
-                  value={editForm.status}
+                  value={editForm.status || 'active'}
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
                   className="w-full px-2 py-1 border rounded"
                 >
@@ -93,7 +103,10 @@ export default function AdminTable({ admins, loading, onUpdate, onDataChange }: 
                   <button onClick={handleEditCancel} className="text-gray-600">Cancel</button>
                 </>
               ) : (
-                <button onClick={() => handleEditStart(admin)} className="text-indigo-600">Edit</button>
+                <div className="flex gap-4 justify-end">
+                    <button onClick={() => handleEditStart(admin)} className="text-indigo-600">Edit</button>
+                    <button onClick={() => onDelete(admin.id)} className="text-red-600">Delete</button>
+                </div>
               )}
             </td>
           </tr>
