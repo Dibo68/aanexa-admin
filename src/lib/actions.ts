@@ -1,83 +1,78 @@
-// src/lib/actions.ts
-
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
-import { NewAdminData } from './types' // Wir importieren den Bauplan
+import { NewAdminData } from './types'
 
-interface AdminUpdateData {
-  full_name?: string;
-  role?: 'admin' | 'super_admin';
-  status?: 'active' | 'inactive';
-}
+const getSupabaseAdmin = () => createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-export async function updateAdmin(adminId: string, updates: AdminUpdateData) {
-  // ... (Diese Funktion existiert bereits und bleibt unverändert)
-  try {
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    const { data, error } = await supabaseAdmin
-      .from('admin_users')
-      .update(updates)
-      .eq('id', adminId)
-      .select()
-      .single();
-    if (error) {
-      return { error: 'Datenbankfehler: Admin konnte nicht aktualisiert werden.' };
-    }
-    revalidatePath('/dashboard/admins');
-    return { data };
-  } catch (err) {
-    return { error: 'Ein unerwarteter Serverfehler ist aufgetreten.' };
+// HILFSFUNKTION FÜR DEN SICHERHEITS-CHECK
+const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('role', 'super_admin')
+    .eq('status', 'active');
+  
+  if (error) return true; // Im Zweifel blockieren
+  return data.length === 1 && data[0].id === adminId;
+};
+
+
+export async function updateAdmin(adminId: string, updates: Partial<NewAdminData>) {
+  if (await isLastSuperAdmin(adminId) && (updates.role !== 'super_admin' || updates.status !== 'active')) {
+    return { error: 'You cannot change the role or status of the last active Super Admin.' };
   }
+  
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from('admin_users').update(updates).eq('id', adminId);
+  
+  if (error) return { error: error.message };
+  revalidatePath('/dashboard/admins');
+  return { data };
 }
 
-// HIER IST DIE NEUE FUNKTION
 export async function addAdmin(adminData: NewAdminData) {
-  try {
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+  const supabase = getSupabaseAdmin();
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    email: adminData.email,
+    password: adminData.password_hash,
+    email_confirm: true,
+  });
 
-    // 1. Erstelle den Benutzer im sicheren Auth-System
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: adminData.email,
-      password: adminData.password_hash,
-      email_confirm: true,
-    });
+  if (authError) return { error: authError.message };
 
-    if (authError) {
-      if (authError.message.includes('unique constraint')) {
-        return { error: 'Ein Admin mit dieser E-Mail existiert bereits.' };
-      }
-      throw authError;
-    }
-
-    // 2. Erstelle den passenden Eintrag in unserer "admin_users" Tabelle
-    const { error: profileError } = await supabaseAdmin
-      .from('admin_users')
-      .insert({
-        id: authData.user.id,
-        full_name: adminData.full_name,
-        email: adminData.email,
-        role: adminData.role,
-        status: adminData.status,
-      });
-    
-    if (profileError) {
-      // Wenn das Profil nicht erstellt werden kann, lösche den Auth-Benutzer wieder
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      throw profileError;
-    }
-
-    revalidatePath('/dashboard/admins');
-    return { data: 'Admin erfolgreich erstellt.' };
-
-  } catch (err: any) {
-    return { error: err.message || 'Ein Serverfehler ist aufgetreten.' };
+  const { error: profileError } = await supabase.from('admin_users').insert({
+    id: authData.user.id,
+    full_name: adminData.full_name,
+    email: adminData.email,
+    role: adminData.role,
+    status: adminData.status,
+  });
+  
+  if (profileError) {
+    await supabase.auth.admin.deleteUser(authData.user.id);
+    return { error: profileError.message };
   }
+
+  revalidatePath('/dashboard/admins');
+  return { data: 'Admin created successfully.' };
+}
+
+export async function deleteAdmin(adminId: string) {
+  if (await isLastSuperAdmin(adminId)) {
+    return { error: 'You cannot delete the last active Super Admin.' };
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.auth.admin.deleteUser(adminId);
+
+  if (error) return { error: error.message };
+  
+  revalidatePath('/dashboard/admins');
+  return { data: 'Admin deleted successfully.' };
 }
