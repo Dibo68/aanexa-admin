@@ -1,3 +1,4 @@
+// src/app/dashboard/admins/page.tsx
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
@@ -36,9 +37,12 @@ export default function AdminsPage() {
   }
 
   const handleDeleteAdmin = async (adminId: string) => {
-    if (confirm('Are you sure you want to delete this admin? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete this admin? This action is irreversible.')) {
       const result = await deleteAdmin(adminId);
-      if (result.error) alert(result.error);
+      if (result.error) {
+        setError(result.error);
+        alert(`Error: ${result.error}`);
+      }
       else fetchAdmins();
     }
   }
@@ -72,7 +76,7 @@ export default function AdminsPage() {
 
       {showAddModal && (
         <AddAdminModal
-          key={Date.now()}
+          key={Date.now()} // FIX: Setzt das Formular bei jedem Öffnen zurück
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddAdmin}
         />
