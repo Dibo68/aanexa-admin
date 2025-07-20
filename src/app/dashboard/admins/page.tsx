@@ -3,16 +3,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import Navigation from '@/components/Navigation'
 import AdminTable from './components/AdminTable'
+import AddAdminModal from './components/AddAdminModal'
 import { supabase, AdminProfile } from '@/lib/supabase'
-import { updateAdmin } from '@/lib/actions'
+import { updateAdmin, addAdmin } from '@/lib/actions'
+import { NewAdminData } from '@/lib/types'
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState('')
 
-  // useCallback sorgt dafür, dass die Funktion stabil bleibt
-  // und nicht bei jedem Re-Render neu erstellt wird.
   const fetchAdmins = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -27,7 +28,6 @@ export default function AdminsPage() {
     } catch (err: any) {
       setError('Could not fetch administrator data.');
     } finally {
-      // Dieser Block garantiert, dass das Laden immer beendet wird.
       setLoading(false);
     }
   }, []);
@@ -36,21 +36,67 @@ export default function AdminsPage() {
     fetchAdmins();
   }, [fetchAdmins]);
 
+  // HIER IST DIE NEUE LOGIK
+  const handleAddAdmin = async (adminData: NewAdminData) => {
+    setError(''); // Fehler zurücksetzen
+    const result = await addAdmin(adminData);
+
+    if (result.error) {
+      // Zeige den Fehler vom Server direkt an
+      setError(result.error);
+    } else {
+      setShowAddModal(false); // Modal bei Erfolg schließen
+      await fetchAdmins(); // Lade die Liste neu, um den neuen Admin zu sehen
+    }
+  }
+
+  const handleDeleteAdmin = async (adminId: string) => {
+    // Implementieren wir als Nächstes
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Navigation currentPath="/dashboard/admins" />
       <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
-        <div className="bg-white shadow-lg rounded-xl border border-gray-200 p-6">
-           <h1 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">Admin Management</h1>
+        <div className="px-4 py-6 sm:px-0">
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">Admin Management</h1>
+              <p className="text-gray-600 mt-2">Manage administrator accounts and permissions.</p>
+            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Add Admin
+            </button>
+          </div>
+          
+          {/* Dieses Feld zeigt jetzt Fehler vom Hinzufügen-Prozess an */}
           {error && <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50">{error}</div>}
-          <AdminTable
-            admins={admins}
-            loading={loading}
-            onUpdate={updateAdmin}
-            onDataChange={fetchAdmins} // Die stabile fetchAdmins-Funktion wird übergeben
-          />
+
+          <div className="bg-white shadow-lg rounded-xl border border-gray-200">
+            <AdminTable
+              admins={admins}
+              loading={loading}
+              onUpdate={updateAdmin}
+              onDelete={handleDeleteAdmin}
+              onDataChange={fetchAdmins}
+            />
+          </div>
         </div>
       </main>
+
+      {showAddModal && (
+        <AddAdminModal
+          key={Date.now()}
+          onClose={() => {
+            setShowAddModal(false)
+            setError('') 
+          }}
+          onAdd={handleAddAdmin}
+        />
+      )}
     </div>
   )
 }
