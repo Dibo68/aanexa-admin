@@ -42,6 +42,7 @@ export async function addAdmin(adminData: NewAdminData) {
     email_confirm: true,
   });
   if (authError) return { error: authError.message };
+
   const { error: profileError } = await supabase.from('admin_users').insert({
     id: authData.user.id,
     full_name: adminData.full_name,
@@ -57,14 +58,11 @@ export async function addAdmin(adminData: NewAdminData) {
   return { data: 'Admin created successfully.' };
 }
 
-// HIER IST DIE NEUE, ROBUSTE DELETE-FUNKTION
 export async function deleteAdmin(adminId: string) {
   if (await isLastSuperAdmin(adminId)) {
     return { error: 'You cannot delete the last active Super Admin.' };
   }
   const supabase = getSupabaseAdmin();
-  // Supabase löscht den Eintrag in 'admin_users' automatisch mit,
-  // wenn wir die User-ID aus 'auth.users' löschen (CASCADE DELETE).
   const { error } = await supabase.auth.admin.deleteUser(adminId);
   if (error) {
     return { error: `Failed to delete user: ${error.message}` };
