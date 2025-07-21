@@ -11,7 +11,7 @@ import { NewAdminData } from '@/lib/types'
 import { useAuth } from '@/context/AuthContext'
 
 export default function AdminsPage() {
-  const { user, adminProfile } = useAuth(); // adminProfile hinzugefügt
+  const { user, adminProfile } = useAuth();
   const [admins, setAdmins] = useState<AdminProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -40,7 +40,8 @@ export default function AdminsPage() {
 
   const handleAddAdmin = async (adminData: NewAdminData) => {
     const result = await addAdmin(adminData);
-    if (result.error) {
+    // KORRIGIERT: Prüft jetzt, ob 'result' existiert, bevor auf 'error' zugegriffen wird
+    if (result && result.error) {
       setError(result.error);
     } else {
       setShowAddModal(false);
@@ -55,7 +56,7 @@ export default function AdminsPage() {
     }
     if (window.confirm('Are you sure you want to delete this admin? This action is irreversible.')) {
       const result = await deleteAdmin(adminId);
-      if (result.error) {
+      if (result && result.error) {
         setError(result.error);
       } else {
         fetchAdmins();
@@ -72,7 +73,6 @@ export default function AdminsPage() {
             <h1 className="text-3xl font-bold text-gray-900">Admin Management</h1>
             <p className="text-gray-600 mt-1">Manage administrator accounts and permissions.</p>
           </div>
-          {/* GEÄNDERT: Button wird nur für Super-Admins angezeigt */}
           {adminProfile?.role === 'super_admin' && (
             <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
               Add Admin
@@ -89,7 +89,6 @@ export default function AdminsPage() {
             onUpdate={updateAdmin}
             onDelete={handleDeleteAdmin}
             onDataChange={fetchAdmins}
-            // GEÄNDERT: Die Rolle des aktuellen Benutzers wird an die Tabelle übergeben
             currentUserRole={adminProfile?.role}
           />
         </div>
