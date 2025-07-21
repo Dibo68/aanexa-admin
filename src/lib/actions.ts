@@ -12,14 +12,14 @@ const getSupabaseAdmin = () => createClient(
 
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
   const supabase = getSupabaseAdmin();
-  const { data, error, count } = await supabase
+  const { data, count, error } = await supabase
     .from('admin_users')
     .select('id', { count: 'exact' })
     .eq('role', 'super_admin')
     .eq('status', 'active');
   
   if (error) return true;
-  const isAdminAmongThem = data?.some(admin => admin.id === adminId);
+  const isAdminAmongThem = !!data?.some(admin => admin.id === adminId);
   return count === 1 && isAdminAmongThem;
 };
 
