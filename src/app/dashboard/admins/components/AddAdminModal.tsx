@@ -55,26 +55,28 @@ export default function AddAdminModal({ onClose, onAdd }: AddAdminModalProps) {
           <h3 className="text-lg font-semibold">Add New Administrator</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
-        <form onSubmit={handleSubmit}>
+        {/* Hinzugefügt: autoComplete="off" auf dem Formular */}
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="px-6 py-4 space-y-4">
             <div>
               <label htmlFor="full_name" className="text-sm font-medium text-gray-700">Full Name</label>
-              <input id="full_name" type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
+              <input id="full_name" type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded" autoComplete="off" />
               {errors.full_name && <p className="text-sm text-red-600">{errors.full_name}</p>}
             </div>
             <div>
               <label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</label>
-              <input id="email" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
+              <input id="email" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded" autoComplete="off" />
               {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
             </div>
             <div>
               <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label> 
-              <input id="password" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
+              {/* Hinzugefügt: autoComplete="new-password" als Hinweis für den Browser */}
+              <input id="password" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded" autoComplete="new-password" />
               {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
             </div>
             <div>
               <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</label>
-              <input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
+              <input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded" autoComplete="new-password" />
               {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
             <div>
