@@ -17,10 +17,19 @@ export default function AdminsPage() {
 
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('admin_users').select('*').order('created_at');
-    if (error) setError(error.message);
-    else setAdmins(data || []);
-    setLoading(false);
+    setError('');
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('admin_users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (fetchError) throw fetchError;
+      setAdmins(data || []);
+    } catch (err: any) {
+      setError('Could not fetch administrator data.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -28,7 +37,6 @@ export default function AdminsPage() {
   }, [fetchAdmins]);
 
   const handleAddAdmin = async (adminData: NewAdminData) => {
-    setError('');
     const result = await addAdmin(adminData);
     if (result.error) {
       setError(result.error);
@@ -39,11 +47,10 @@ export default function AdminsPage() {
   }
 
   const handleDeleteAdmin = async (adminId: string) => {
-    setError('');
     if (window.confirm('Are you sure you want to delete this admin? This action is irreversible.')) {
       const result = await deleteAdmin(adminId);
       if (result.error) {
-        setError(result.error); // Zeigt den Fehler jetzt im roten Kasten an
+        setError(result.error);
       } else {
         fetchAdmins();
       }
@@ -59,12 +66,12 @@ export default function AdminsPage() {
             <h1 className="text-3xl font-bold text-gray-900">Admin Management</h1>
             <p className="text-gray-600 mt-1">Manage administrator accounts and permissions.</p>
           </div>
-          <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+          <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
             Add Admin
           </button>
         </div>
         
-        {error && <div className="p-4 mb-4 text-red-700 bg-red-100 rounded-lg">{error}</div>}
+        {error && <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
 
         <div className="bg-white shadow-md rounded-lg">
           <AdminTable
@@ -79,7 +86,7 @@ export default function AdminsPage() {
 
       {showAddModal && (
         <AddAdminModal
-          key={Date.now()} // FIX: Setzt das Formular bei jedem Öffnen zurück
+          key={Date.now()}
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddAdmin}
         />
