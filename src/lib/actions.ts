@@ -22,8 +22,8 @@ const getSupabaseAdminClient = () => {
 
 // Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher auf dem Server zu verifizieren
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-    const cookieStore = cookies();
-    // KORRIGIERT: Das .get() muss auf dem aufgelösten Cookie-Store aufgerufen werden.
+    // KORREKTUR: `await` wird hier benötigt, da cookies() in Next.js 15 asynchron ist.
+    const cookieStore = await cookies(); 
     const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
 
     if (!tokenCookie) {
