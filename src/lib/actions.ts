@@ -5,15 +5,16 @@ import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { jwtVerify } from 'jose'
 import { AdminProfile } from './supabase'
+import { NewAdminData } from './types' // KORRIGIERT: Fehlender Import
+import { revalidatePath } from 'next/cache'
 
-// Diese Funktion gibt jetzt ein Objekt zurück, das entweder das Profil oder eine Debug-Info enthält.
 async function getAdminProfileForVerification(): Promise<{ profile: AdminProfile | null, debugInfo: any }> {
     const debugInfo: { [key: string]: any } = {};
     try {
         const cookieStore = await cookies();
         
         const allCookies = cookieStore.getAll();
-        debugInfo.allCookies = allCookies.map(c => ({ name: c.name, value: c.value.substring(0, 10) + '...' }));
+        debugInfo.allCookies = allCookies.map(c => ({ name: c.name, value: c.value.substring(0, 15) + '...' }));
 
         if (!allCookies || allCookies.length === 0) {
             debugInfo.error = "No cookies received by server.";
@@ -27,7 +28,7 @@ async function getAdminProfileForVerification(): Promise<{ profile: AdminProfile
             return { profile: null, debugInfo };
         }
         
-        debugInfo.cookieFound = "sb-oorpduqkhfsuqerlcubo-auth-token";
+        debugInfo.cookieFound = { name: tokenCookie.name, value: tokenCookie.value.substring(0, 15) + '...'};
 
         const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
         if (!supabaseJwtSecret) {
@@ -74,9 +75,8 @@ async function getAdminProfileForVerification(): Promise<{ profile: AdminProfile
     }
 }
 
-
 // Neue, simple Debug-Funktion
-export async function runServerDebug(): Promise<string> {
+export async function runServerDebug(): Promise<{ error?: string, data?: string }> {
     const { profile, debugInfo } = await getAdminProfileForVerification();
     
     const result = {
@@ -84,10 +84,36 @@ export async function runServerDebug(): Promise<string> {
         debugTrace: debugInfo
     };
     
-    return JSON.stringify(result, null, 2);
+    return { data: JSON.stringify(result, null, 2) };
 }
 
-// Temporär leere Funktionen, um Build-Fehler zu vermeiden
-export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>) { return { error: "Temporarily disabled" } }
-export async function addAdmin(adminData: NewAdminData) { return { error: "Temporarily disabled" } }
-export async function deleteAdmin(adminId: string) { return { error: "Temporarily disabled" } }
+// Funktionen, die ein korrektes Objekt zurückgeben
+export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>): Promise<{ error?: string, data?: any }> { 
+    const { profile: currentAdmin, debugInfo } = await getAdminProfileForVerification();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: `Permission Denied. Debug: ${JSON.stringify(debugInfo)}` };
+    }
+    // ... Hier würde die echte Logik stehen
+    revalidatePath('/dashboard/admins');
+    return { data: "Update successful (simulation)" } 
+}
+
+export async function addAdmin(adminData: NewAdminData): Promise<{ error?: string, data?: any }> { 
+    const { profile: currentAdmin, debugInfo } = await getAdminProfileForVerification();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: `Permission Denied. Debug: ${JSON.stringify(debugInfo)}` };
+    }
+    // ... Hier würde die echte Logik stehen
+    revalidatePath('/dashboard/admins');
+    return { data: "Add successful (simulation)" } 
+}
+
+export async function deleteAdmin(adminId: string): Promise<{ error?: string, data?: any }> { 
+    const { profile: currentAdmin, debugInfo } = await getAdminProfileForVerification();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: `Permission Denied. Debug: ${JSON.stringify(debugInfo)}` };
+    }
+    // ... Hier würde die echte Logik stehen
+    revalidatePath('/dashboard/admins');
+    return { data: "Delete successful (simulation)" } 
+}
