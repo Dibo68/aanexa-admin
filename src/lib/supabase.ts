@@ -4,13 +4,27 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// KORREKTUR: Wir erstellen den Supabase-Client mit der korrekten Cookie-Konfiguration für Ihre Domain.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Diese Einstellung sorgt dafür, dass Cookies für `.aanexa.com` gesetzt werden,
+    // was sie auch für den Server auf `admin.aanexa.com` sichtbar macht.
+    cookieOptions: {
+      name: 'aanexa-admin-auth-token', // Eigener Cookie-Name zur Sicherheit
+      domain: '.aanexa.com',
+      path: '/',
+      sameSite: 'lax',
+      secure: true
+    },
+  },
+});
+
 
 // Type definitions für unsere Admin-Tabelle
 export interface AdminProfile {
   id: string
   email: string
-  full_name: string  // ← KORRIGIERT: war vorher 'name'
+  full_name: string
   role: 'super_admin' | 'admin'
   status: 'active' | 'inactive'
   created_at: string
@@ -18,26 +32,7 @@ export interface AdminProfile {
   last_login?: string
 }
 
-// Auth helper functions
-export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  })
-  return { data, error }
-}
-
-export const signOut = async () => {
-  const { error } = await supabase.auth.signOut()
-  return { error }
-}
-
-export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  return { user, error }
-}
-
-// Admin-spezifische Funktionen
+// Admin-spezifische Funktionen (unverändert)
 export const getAdminProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from('admin_users')
