@@ -11,7 +11,7 @@ import { NewAdminData } from '@/lib/types'
 import { useAuth } from '@/context/AuthContext'
 
 export default function AdminsPage() {
-  const { user } = useAuth(); // Holen des aktuellen Benutzers
+  const { user, adminProfile } = useAuth(); // adminProfile hinzugefügt
   const [admins, setAdmins] = useState<AdminProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -72,9 +72,12 @@ export default function AdminsPage() {
             <h1 className="text-3xl font-bold text-gray-900">Admin Management</h1>
             <p className="text-gray-600 mt-1">Manage administrator accounts and permissions.</p>
           </div>
-          <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Add Admin
-          </button>
+          {/* GEÄNDERT: Button wird nur für Super-Admins angezeigt */}
+          {adminProfile?.role === 'super_admin' && (
+            <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              Add Admin
+            </button>
+          )}
         </div>
         
         {error && <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
@@ -86,13 +89,15 @@ export default function AdminsPage() {
             onUpdate={updateAdmin}
             onDelete={handleDeleteAdmin}
             onDataChange={fetchAdmins}
+            // GEÄNDERT: Die Rolle des aktuellen Benutzers wird an die Tabelle übergeben
+            currentUserRole={adminProfile?.role}
           />
         </div>
       </main>
 
       {showAddModal && (
         <AddAdminModal
-          key={Date.now()} // <-- DIESE ZEILE IST DER FIX
+          key={Date.now()}
           onClose={() => {
             setError('');
             setShowAddModal(false);
