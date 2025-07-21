@@ -23,7 +23,6 @@ const getSupabaseAdminClient = () => {
 // Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher auf dem Server zu verifizieren
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
     const cookieStore = cookies();
-    // Supabase speichert das Login-Token in einem Cookie mit diesem Namen
     const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
 
     if (!tokenCookie) {
@@ -36,7 +35,6 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
             throw new Error('SUPABASE_JWT_SECRET is not set in environment variables.');
         }
 
-        // Token verifizieren, um die User-ID sicher zu erhalten
         const token = JSON.parse(tokenCookie.value).access_token;
         const secret = new TextEncoder().encode(supabaseJwtSecret);
         const { payload } = await jwtVerify(token, secret);
@@ -104,6 +102,71 @@ export async function updateAdmin(adminId: string, updates: Partial<AdminProfile
     }
 
     if (updates.email) {
+        // DIE FEHLENDE KLAMMER WURDE HIER HINZUGEFÜGT
         const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
             adminId,
             { email: updates.email }
+        ); 
+        if (authError) {
+            return { error: `Auth user update failed: ${authError.message}` };
+        }
+    }
+
+    revalidatePath('/dashboard/admins');
+    return { data: 'Admin updated successfully.' };
+}
+
+export async function addAdmin(adminData: NewAdminData) {
+    const currentAdmin = await getCurrentAdminProfile();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: 'Permission denied: Only Super Admins can add new users.' };
+    }
+
+    const supabaseAdmin = getSupabaseAdminClient();
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: adminData.email,
+        password: adminData.password_hash,
+        email_confirm: true,
+    });
+
+    if (authError) {
+        return { error: `Auth Error: ${authError.message}` };
+    }
+
+    const { error: profileError } = await supabaseAdmin.from('admin_users').insert({
+        id: authData.user.id,
+        full_name: adminData.full_name,
+        email: adminData.email,
+        role: adminData.role,
+        status: adminData.status,
+    });
+
+    if (profileError) {
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return { error: `Profile Error: ${profileError.message}` };
+    }
+
+    revalidatePath('/dashboard/admins');
+    return { data: 'Admin created successfully.' };
+}
+
+export async function deleteAdmin(adminId: string) {
+    const currentAdmin = await getCurrentAdminProfile();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: 'Permission denied: Only Super Admins can delete users.' };
+    }
+
+    if (await isLastSuperAdmin(adminId)) {
+        return { error: 'You cannot delete the last active Super Admin.' };
+    }
+    
+    const supabaseAdmin = getSupabaseAdminClient();
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(adminId);
+
+    if (error) {
+        return { error: `Failed to delete user: ${error.message}` };
+    }
+
+    revalidatePath('/dashboard/admins');
+    return { data: 'Admin deleted successfully.' };
+}
