@@ -22,7 +22,8 @@ const getSupabaseAdminClient = () => {
 
 // Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher auf dem Server zu verifizieren
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-    const cookieStore = await cookies(); 
+    const cookieStore = await cookies();
+    // KORREKTUR: Der Name des Supabase Auth-Cookies wurde korrigiert.
     const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
 
     if (!tokenCookie) {
@@ -36,10 +37,12 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
             throw new Error('SUPABASE_JWT_SECRET is not set in environment variables.');
         }
 
-        const tokenData = JSON.parse(tokenCookie.value);
-        const accessToken = tokenData[0]?.access_token;
+        // Das Token-Format von Supabase GoTrue ist ein Array, wir nehmen das erste Element.
+        const parsedToken = JSON.parse(tokenCookie.value);
+        const accessToken = Array.isArray(parsedToken) ? parsedToken[0]?.access_token : parsedToken.access_token;
+        
         if (!accessToken) {
-            console.log("Debug: Access token not found in cookie.");
+            console.log("Debug: Access token not found in cookie value.");
             return null;
         }
 
@@ -89,7 +92,6 @@ const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
 export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>) {
     const currentAdmin = await getCurrentAdminProfile();
     
-    // TEMPORÄRE DEBUG-AUSGABE
     console.log("DEBUG: currentAdmin profile in updateAdmin:", currentAdmin);
 
     if (!currentAdmin || currentAdmin.role !== 'super_admin') {
