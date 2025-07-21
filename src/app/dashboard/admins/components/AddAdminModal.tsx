@@ -68,7 +68,7 @@ export default function AddAdminModal({ onClose, onAdd }: AddAdminModalProps) {
               {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
             </div>
             <div>
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</for-password>
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label> 
               <input id="password" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
               {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
             </div>
