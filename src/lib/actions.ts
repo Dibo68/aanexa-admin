@@ -12,18 +12,13 @@ const getSupabaseAdmin = () => createClient(
 
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
   const supabase = getSupabaseAdmin();
-  const { data, count, error } = await supabase
+  const { data, count } = await supabase
     .from('admin_users')
     .select('id', { count: 'exact' })
     .eq('role', 'super_admin')
     .eq('status', 'active');
   
-  if (error) return true; // Fail safe: im Fehlerfall blockieren
-
-  // HIER IST DIE KORREKTUR:
-  // Wir stellen sicher, dass isAdminAmongThem immer ein boolean ist.
   const isAdminAmongThem = !!data?.some(admin => admin.id === adminId);
-  
   return count === 1 && isAdminAmongThem;
 };
 
@@ -67,10 +62,24 @@ export async function deleteAdmin(adminId: string) {
     return { error: 'You cannot delete the last active Super Admin.' };
   }
   const supabase = getSupabaseAdmin();
+  
+  // KORREKTUR: Supabase löscht den 'admin_users' Eintrag automatisch mit,
+  // wenn die Foreign-Key-Beziehung mit "ON DELETE CASCADE" eingerichtet ist.
+  // Wir führen NUR diesen einen Befehl aus.
   const { error } = await supabase.auth.admin.deleteUser(adminId);
+  
   if (error) {
+    // Wenn dieser Fehler auftritt, bedeutet das, dass die Verknüpfung in der DB fehlt.
+    // Wir löschen dann nur den Profileintrag als Fallback.
+    if (error.message.toLowerCase().includes('not found')) {
+        const { error: profileDeleteError } = await supabase.from('admin_users').delete().eq('id', adminId);
+        if (profileDeleteError) return { error: `User not found in Auth, and failed to delete profile: ${profileDeleteError.message}`};
+        revalidatePath('/dashboard/admins');
+        return { data: 'Orphaned admin profile deleted.' };
+    }
     return { error: `Failed to delete user: ${error.message}` };
   }
+
   revalidatePath('/dashboard/admins');
   return { data: 'Admin deleted successfully.' };
 }
