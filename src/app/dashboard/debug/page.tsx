@@ -2,7 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import { runServerDebug } from '@/lib/actions'; // Wir erstellen diese Funktion im nächsten Schritt
+// WICHTIG: Stellen Sie sicher, dass runServerDebug in actions.ts existiert
+import { runServerDebug } from '@/lib/actions'; 
 import Navigation from '@/components/Navigation';
 
 export default function DebugPage() {
@@ -11,8 +12,13 @@ export default function DebugPage() {
 
     const handleRunDebug = async () => {
         setIsLoading(true);
+        // Die Funktion gibt jetzt ein Objekt zurück, wir greifen auf .data oder .error zu
         const result = await runServerDebug();
-        setDebugResult(result);
+        if (result.error) {
+            setDebugResult(`FEHLER: ${result.error}\n\n${result.data}`);
+        } else {
+            setDebugResult(result.data || 'Keine Daten zurückgegeben.');
+        }
         setIsLoading(false);
     };
 
