@@ -22,11 +22,11 @@ const getSupabaseAdminClient = () => {
 
 // Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher auf dem Server zu verifizieren
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-    // KORREKTUR: `await` wird hier benötigt, da cookies() in Next.js 15 asynchron ist.
     const cookieStore = await cookies(); 
     const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
 
     if (!tokenCookie) {
+        console.log("Debug: Auth token cookie not found.");
         return null;
     }
 
@@ -36,25 +36,36 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
             throw new Error('SUPABASE_JWT_SECRET is not set in environment variables.');
         }
 
-        const token = JSON.parse(tokenCookie.value).access_token;
+        const tokenData = JSON.parse(tokenCookie.value);
+        const accessToken = tokenData[0]?.access_token;
+        if (!accessToken) {
+            console.log("Debug: Access token not found in cookie.");
+            return null;
+        }
+
         const secret = new TextEncoder().encode(supabaseJwtSecret);
-        const { payload } = await jwtVerify(token, secret);
+        const { payload } = await jwtVerify(accessToken, secret);
         const userId = payload.sub;
 
         if (!userId) {
+            console.log("Debug: User ID (sub) not found in JWT payload.");
             return null;
         }
 
         const supabase = getSupabaseAdminClient();
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
             .from('admin_users')
             .select('*')
             .eq('id', userId)
             .single();
+
+        if (error) {
+            console.error("Debug: Error fetching profile for user ID:", userId, error.message);
+        }
         
         return profile;
     } catch (e) {
-        console.error('Error verifying token or fetching profile:', e);
+        console.error('Debug: Error verifying token or fetching profile:', e);
         return null;
     }
 }
@@ -77,6 +88,10 @@ const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
 
 export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>) {
     const currentAdmin = await getCurrentAdminProfile();
+    
+    // TEMPORÄRE DEBUG-AUSGABE
+    console.log("DEBUG: currentAdmin profile in updateAdmin:", currentAdmin);
+
     if (!currentAdmin || currentAdmin.role !== 'super_admin') {
         return { error: 'Permission denied: Only Super Admins can update users.' };
     }
