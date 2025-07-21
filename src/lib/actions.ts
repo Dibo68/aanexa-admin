@@ -19,84 +19,145 @@ const getSupabaseAdminClient = () => {
     });
 }
 
-// Diese Funktion gibt jetzt ein Objekt zurück, das entweder das Profil oder eine Debug-Info enthält.
-async function getAdminProfileForVerification(): Promise<{ profile: AdminProfile | null, debugError: string | null }> {
+async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
+    const cookieStore = await cookies();
+    const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
+
+    if (!tokenCookie) return null;
+
     try {
-        const cookieStore = await cookies();
-        
-        const allCookies = cookieStore.getAll();
-        if (!allCookies || allCookies.length === 0) {
-            return { profile: null, debugError: "No cookies received by server." };
-        }
-
-        const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
-        if (!tokenCookie) {
-            const cookieNames = allCookies.map(c => c.name).join(', ');
-            return { profile: null, debugError: `Auth cookie not found. Available cookies: [${cookieNames}]` };
-        }
-
         const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
-        if (!supabaseJwtSecret) {
-            return { profile: null, debugError: "SUPABASE_JWT_SECRET is not set on server." };
-        }
+        if (!supabaseJwtSecret) throw new Error('SUPABASE_JWT_SECRET is not set.');
 
         const tokenData = JSON.parse(tokenCookie.value);
         const accessToken = Array.isArray(tokenData) ? tokenData[0]?.access_token : tokenData.access_token;
-        if (!accessToken) {
-            return { profile: null, debugError: "Access token not found in cookie JSON." };
-        }
+        if (!accessToken) return null;
 
         const secret = new TextEncoder().encode(supabaseJwtSecret);
         const { payload } = await jwtVerify(accessToken, secret);
         const userId = payload.sub;
-        if (!userId) {
-            return { profile: null, debugError: "User ID (sub) not found in JWT." };
-        }
+
+        if (!userId) return null;
 
         const supabase = getSupabaseAdminClient();
-        const { data: profile, error } = await supabase
+        const { data: profile } = await supabase
             .from('admin_users')
             .select('*')
             .eq('id', userId)
             .single();
-
-        if (error) {
-            return { profile: null, debugError: `DB error fetching profile for user ${userId}: ${error.message}` };
-        }
         
-        return { profile, debugError: null };
-    } catch (e: any) {
-        return { profile: null, debugError: `An error occurred: ${e.message}` };
+        return profile;
+    } catch (e) {
+        return null;
     }
 }
 
-// Die exportierten Funktionen bleiben gleich, rufen aber die neue Verifizierungs-Funktion auf.
-// Wichtig: Die updateAdmin Funktion wurde angepasst, um die Debug-Info auszugeben.
-export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>) {
-    const { profile: currentAdmin, debugError } = await getAdminProfileForVerification();
-    
-    if (debugError || !currentAdmin || currentAdmin.role !== 'super_admin') {
-        const errorMessage = debugError ? `Debug Info: ${debugError}` : 'Permission denied: User is not a Super Admin.';
-        return { error: errorMessage };
+const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
+    const supabase = getSupabaseAdminClient();
+    const { data, count, error } = await supabase
+        .from('admin_users')
+        .select('id', { count: 'exact' })
+        .eq('role', 'super_admin')
+        .eq('status', 'active');
+    if (error) return true;
+    const isAdminAmongThem = !!data?.some(admin => admin.id === adminId);
+    return count === 1 && isAdminAmongThem;
+};
+
+// JEDE FUNKTION GIBT JETZT KORREKT EIN OBJEKT ZURÜCK
+export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>): Promise<{ error?: string, data?: any }> {
+    const currentAdmin = await getCurrentAdminProfile();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: 'Permission denied: Only Super Admins can update users.' };
     }
     
-    // ... Rest der Funktion ...
-}
-export async function addAdmin(adminData: NewAdminData) {
-    const { profile: currentAdmin, debugError } = await getAdminProfileForVerification();
-    if (debugError || !currentAdmin || currentAdmin.role !== 'super_admin') {
-        const errorMessage = debugError ? `Debug Info: ${debugError}` : 'Permission denied: User is not a Super Admin.';
-        return { error: errorMessage };
+    if (updates.role !== 'super_admin' || updates.status !== 'active') {
+        if (await isLastSuperAdmin(adminId)) {
+            return { error: 'You cannot change the role or status of the last active Super Admin.' };
+        }
+    }
+    
+    const supabaseAdmin = getSupabaseAdminClient();
+    const { data, error: profileError } = await supabaseAdmin
+      .from('admin_users')
+      .update({
+        full_name: updates.full_name,
+        role: updates.role,
+        status: updates.status,
+        email: updates.email
+      })
+      .eq('id', adminId)
+      .select();
+
+    if (profileError) {
+        return { error: profileError.message };
     }
 
-    // ... Rest der Funktion ...
+    if (updates.email) {
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+            adminId,
+            { email: updates.email }
+        ); 
+        if (authError) {
+            return { error: `Auth user update failed: ${authError.message}` };
+        }
+    }
+
+    revalidatePath('/dashboard/admins');
+    return { data };
 }
-export async function deleteAdmin(adminId: string) {
-    const { profile: currentAdmin, debugError } = await getAdminProfileForVerification();
-    if (debugError || !currentAdmin || currentAdmin.role !== 'super_admin') {
-        const errorMessage = debugError ? `Debug Info: ${debugError}` : 'Permission denied: User is not a Super Admin.';
-        return { error: errorMessage };
+
+export async function addAdmin(adminData: NewAdminData): Promise<{ error?: string, data?: any }> {
+    const currentAdmin = await getCurrentAdminProfile();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: 'Permission denied: Only Super Admins can add new users.' };
+    }
+
+    const supabaseAdmin = getSupabaseAdminClient();
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: adminData.email,
+        password: adminData.password_hash,
+        email_confirm: true,
+    });
+
+    if (authError) {
+        return { error: `Auth Error: ${authError.message}` };
+    }
+
+    const { error: profileError } = await supabaseAdmin.from('admin_users').insert({
+        id: authData.user.id,
+        full_name: adminData.full_name,
+        email: adminData.email,
+        role: adminData.role,
+        status: adminData.status,
+    });
+
+    if (profileError) {
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return { error: `Profile Error: ${profileError.message}` };
+    }
+
+    revalidatePath('/dashboard/admins');
+    return { data: 'Admin created successfully.' };
+}
+
+export async function deleteAdmin(adminId: string): Promise<{ error?: string, data?: any }> {
+    const currentAdmin = await getCurrentAdminProfile();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+        return { error: 'Permission denied: Only Super Admins can delete users.' };
+    }
+
+    if (await isLastSuperAdmin(adminId)) {
+        return { error: 'You cannot delete the last active Super Admin.' };
     }
     
-    // ... Rest der Funktion ...
+    const supabaseAdmin = getSupabaseAdminClient();
+    const { data, error } = await supabaseAdmin.auth.admin.deleteUser(adminId);
+
+    if (error) {
+        return { error: `Failed to delete user: ${error.message}` };
+    }
+
+    revalidatePath('/dashboard/admins');
+    return { data };
 }
