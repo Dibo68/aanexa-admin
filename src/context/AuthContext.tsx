@@ -1,3 +1,4 @@
+// src/context/AuthContext.tsx
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
@@ -23,47 +24,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
-    // 1. Prüfe die Session einmalig beim Laden der App
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-        const { data: profile } = await getAdminProfile(session.user.id);
-        setAdminProfile(profile);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user
+      setUser(currentUser ?? null)
+      if (currentUser) {
+        const { data: profile } = await getAdminProfile(currentUser.id)
+        setAdminProfile(profile)
+      } else {
+        setAdminProfile(null)
       }
-      setLoading(false); // Beende das Laden, nachdem die erste Prüfung abgeschlossen ist
-    };
-
-    checkInitialSession();
-
-    // 2. Lausche auf zukünftige Änderungen (z.B. Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setAdminProfile(null);
-        router.push('/login');
-      } else if (event === 'SIGNED_IN' && session) {
-        // Dieser Teil wird nach einem erfolgreichen Login ausgeführt
-        setUser(session.user);
-        getAdminProfile(session.user.id).then(({ data }) => setAdminProfile(data));
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router]);
+      setLoading(false)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
   
   const refreshProfile = async () => {
     if (user) {
-      const { data: profile } = await getAdminProfile(user.id);
-      setAdminProfile(profile);
+      const { data: profile } = await getAdminProfile(user.id)
+      setAdminProfile(profile)
     }
-  };
+  }
 
-  const value = { user, adminProfile, loading, signOut, refreshProfile };
+  const value = { user, adminProfile, loading, signOut, refreshProfile }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
