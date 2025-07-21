@@ -11,7 +11,7 @@ interface AdminTableProps {
   onUpdate: (adminId: string, updates: Partial<AdminProfile>) => Promise<{ error?: string }>;
   onDelete: (adminId:string) => void;
   onDataChange: () => void;
-  currentUserRole?: 'super_admin' | 'admin'; // Eigenschaft für die Rolle hinzugefügt
+  currentUserRole?: 'super_admin' | 'admin';
 }
 
 export default function AdminTable({ admins, loading, onUpdate, onDelete, onDataChange, currentUserRole }: AdminTableProps) {
@@ -56,7 +56,6 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Administrator</th>
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-          {/* GEÄNDERT: Spalte "Actions" wird nur für Super-Admins angezeigt */}
           {currentUserRole === 'super_admin' && (
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           )}
@@ -66,17 +65,51 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
         {admins.map((admin) => (
           <tr key={admin.id}>
             <td className="px-6 py-4">
-              {/* Die Anzeige von Name/Email bleibt für alle sichtbar */}
-              <div className="text-sm font-medium text-gray-900">{admin.full_name} {admin.id === user?.id && <span className="text-xs text-indigo-600">(You)</span>}</div>
-              <div className="text-sm text-gray-500">{admin.email}</div>
+              {/* KORRIGIERT: Logik zum Anzeigen der Eingabefelder wiederhergestellt */}
+              {editingAdmin === admin.id && currentUserRole === 'super_admin' ? (
+                <div className="space-y-2 w-64">
+                  <input 
+                    type="text" 
+                    value={editForm.full_name || ''} 
+                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                    className="w-full px-2 py-1 border rounded"
+                  />
+                  <input 
+                    type="email" 
+                    value={editForm.email || ''} 
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-2 py-1 border rounded"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="text-sm font-medium text-gray-900">{admin.full_name} {admin.id === user?.id && <span className="text-xs text-indigo-600">(You)</span>}</div>
+                  <div className="text-sm text-gray-500">{admin.email}</div>
+                </>
+              )}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {getRoleDisplayName(admin.role)}
+              {/* KORRIGIERT: Select-Box für die Rolle im Edit-Modus wiederhergestellt */}
+              {editingAdmin === admin.id && currentUserRole === 'super_admin' ? (
+                <select value={editForm.role} disabled={isLastActiveSuperAdmin(admin.id)} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })} className="px-2 py-1 border rounded disabled:bg-gray-100">
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+               ) : (
+                <span>{getRoleDisplayName(admin.role)}</span>
+               )}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              <span className="capitalize">{admin.status}</span>
+              {/* KORRIGIERT: Select-Box für den Status im Edit-Modus wiederhergestellt */}
+              {editingAdmin === admin.id && currentUserRole === 'super_admin' ? (
+                <select value={editForm.status} disabled={isLastActiveSuperAdmin(admin.id)} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })} className="px-2 py-1 border rounded disabled:bg-gray-100">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              ) : (
+                <span className="capitalize">{admin.status}</span>
+              )}
             </td>
-            {/* GEÄNDERT: Edit/Delete/Save/Cancel Buttons werden nur für Super-Admins angezeigt */}
             {currentUserRole === 'super_admin' && (
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 {editingAdmin === admin.id ? (
@@ -86,7 +119,6 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
                   </div>
                 ) : (
                   <div className="flex items-center justify-end gap-4">
-                      {/* Eigener Account kann nicht editiert werden */}
                       <button onClick={() => handleEditStart(admin)} disabled={admin.id === user?.id} className="text-indigo-600 hover:text-indigo-800 disabled:text-gray-300 disabled:cursor-not-allowed">Edit</button>
                       <button onClick={() => onDelete(admin.id)} disabled={isLastActiveSuperAdmin(admin.id) || admin.id === user?.id} className="text-red-600 hover:text-red-800 disabled:text-gray-300 disabled:cursor-not-allowed">Delete</button>
                   </div>
