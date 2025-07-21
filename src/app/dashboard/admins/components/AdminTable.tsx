@@ -25,7 +25,6 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
 
   const handleEditStart = (admin: AdminProfile) => {
     setEditingAdmin(admin.id)
-    // Hinzugefügt: email wird nun auch in das Bearbeitungsformular geladen
     setEditForm({ full_name: admin.full_name, email: admin.email, role: admin.role, status: admin.status })
   }
 
@@ -62,9 +61,10 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
       <tbody className="bg-white divide-y divide-gray-200">
         {admins.map((admin) => (
           <tr key={admin.id}>
-            <td className="px-6 py-4 whitespace-nowrap">
+            <td className="px-6 py-4">
               {editingAdmin === admin.id ? (
-                <div className="space-y-2">
+                // GEÄNDERT: Feste Breite für den Container der Eingabefelder hinzugefügt
+                <div className="space-y-2 w-64">
                   <input 
                     type="text" 
                     value={editForm.full_name || ''} 
