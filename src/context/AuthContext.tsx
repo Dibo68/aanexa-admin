@@ -14,8 +14,22 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>(null!)
-export const useAuth = () => useContext(AuthContext)
+// Einen Standardkontext mit leeren Funktionen und initialen Werten erstellen
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  adminProfile: null,
+  loading: true,
+  signOut: async () => {},
+  refreshProfile: async () => {}
+});
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+}
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -24,33 +38,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
+    // Diese Funktion wird bei jeder Änderung des Authentifizierungsstatus aufgerufen (Login, Logout, Initialisierung)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user
-      setUser(currentUser ?? null)
+      const currentUser = session?.user;
+      setUser(currentUser ?? null);
+
       if (currentUser) {
-        const { data: profile } = await getAdminProfile(currentUser.id)
-        setAdminProfile(profile)
+        // Wenn ein Benutzer angemeldet ist, lade sein Admin-Profil
+        const { data: profile } = await getAdminProfile(currentUser.id);
+        setAdminProfile(profile || null);
       } else {
-        setAdminProfile(null)
+        // Wenn kein Benutzer angemeldet ist, setze das Profil auf null
+        setAdminProfile(null);
       }
-      setLoading(false)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
+      
+      // WICHTIG: Beende den Ladezustand, egal was passiert
+      setLoading(false);
+    });
+
+    // Aufräumfunktion: Beendet den Listener, wenn die Komponente nicht mehr verwendet wird
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // Leeres Array sorgt dafür, dass dieser Effekt nur einmal beim Start ausgeführt wird
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
+    await supabase.auth.signOut();
+    // Die Weiterleitung wird durch den onAuthStateChange-Listener oben automatisch ausgelöst
+    router.push('/login'); 
+  };
   
   const refreshProfile = async () => {
     if (user) {
-      const { data: profile } = await getAdminProfile(user.id)
-      setAdminProfile(profile)
+      setLoading(true);
+      const { data: profile } = await getAdminProfile(user.id);
+      setAdminProfile(profile || null);
+      setLoading(false);
     }
-  }
+  };
 
-  const value = { user, adminProfile, loading, signOut, refreshProfile }
+  const value = { user, adminProfile, loading, signOut, refreshProfile };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
