@@ -1,163 +1,93 @@
 // src/lib/actions.ts
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
-import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
-import { NewAdminData } from './types'
-import { AdminProfile } from './supabase'
+import { createClient } from '@supabase/supabase-js'
 import { jwtVerify } from 'jose'
+import { AdminProfile } from './supabase'
 
-const getSupabaseAdminClient = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error('Supabase URL or Service Role Key is not configured.');
-    }
-    return createClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false }
-    });
-}
-
-async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-    const cookieStore = await cookies();
-    const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
-
-    if (!tokenCookie) return null;
-
+// Diese Funktion gibt jetzt ein Objekt zurück, das entweder das Profil oder eine Debug-Info enthält.
+async function getAdminProfileForVerification(): Promise<{ profile: AdminProfile | null, debugInfo: any }> {
+    const debugInfo: { [key: string]: any } = {};
     try {
+        const cookieStore = await cookies();
+        
+        const allCookies = cookieStore.getAll();
+        debugInfo.allCookies = allCookies.map(c => ({ name: c.name, value: c.value.substring(0, 10) + '...' }));
+
+        if (!allCookies || allCookies.length === 0) {
+            debugInfo.error = "No cookies received by server.";
+            return { profile: null, debugInfo };
+        }
+
+        const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
+        if (!tokenCookie) {
+            const cookieNames = allCookies.map(c => c.name).join(', ');
+            debugInfo.error = `Auth cookie 'sb-oorpduqkhfsuqerlcubo-auth-token' not found. Available cookies: [${cookieNames}]`;
+            return { profile: null, debugInfo };
+        }
+        
+        debugInfo.cookieFound = "sb-oorpduqkhfsuqerlcubo-auth-token";
+
         const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
-        if (!supabaseJwtSecret) throw new Error('SUPABASE_JWT_SECRET is not set.');
+        if (!supabaseJwtSecret) {
+            debugInfo.error = "SUPABASE_JWT_SECRET is not set on server.";
+            return { profile: null, debugInfo };
+        }
+        debugInfo.jwtSecretFound = true;
 
         const tokenData = JSON.parse(tokenCookie.value);
         const accessToken = Array.isArray(tokenData) ? tokenData[0]?.access_token : tokenData.access_token;
-        if (!accessToken) return null;
+        if (!accessToken) {
+            debugInfo.error = "Access token not found in cookie JSON.";
+            return { profile: null, debugInfo };
+        }
+        debugInfo.accessTokenFound = true;
 
         const secret = new TextEncoder().encode(supabaseJwtSecret);
         const { payload } = await jwtVerify(accessToken, secret);
+        debugInfo.jwtVerified = true;
+        
         const userId = payload.sub;
+        if (!userId) {
+            debugInfo.error = "User ID (sub) not found in JWT.";
+            return { profile: null, debugInfo };
+        }
+        debugInfo.userId = userId;
 
-        if (!userId) return null;
-
-        const supabase = getSupabaseAdminClient();
-        const { data: profile } = await supabase
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+        const { data: profile, error } = await supabase
             .from('admin_users')
             .select('*')
             .eq('id', userId)
             .single();
+
+        if (error) {
+            debugInfo.dbError = `DB error for user ${userId}: ${error.message}`;
+        }
         
-        return profile;
-    } catch (e) {
-        return null;
+        debugInfo.profileFromDB = profile;
+        return { profile, debugInfo };
+    } catch (e: any) {
+        debugInfo.catchError = `An error occurred: ${e.message}`;
+        return { profile: null, debugInfo };
     }
 }
 
-const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
-    const supabase = getSupabaseAdminClient();
-    const { data, count, error } = await supabase
-        .from('admin_users')
-        .select('id', { count: 'exact' })
-        .eq('role', 'super_admin')
-        .eq('status', 'active');
-    if (error) return true;
-    const isAdminAmongThem = !!data?.some(admin => admin.id === adminId);
-    return count === 1 && isAdminAmongThem;
-};
 
-// JEDE FUNKTION GIBT JETZT KORREKT EIN OBJEKT ZURÜCK
-export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>): Promise<{ error?: string, data?: any }> {
-    const currentAdmin = await getCurrentAdminProfile();
-    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
-        return { error: 'Permission denied: Only Super Admins can update users.' };
-    }
+// Neue, simple Debug-Funktion
+export async function runServerDebug(): Promise<string> {
+    const { profile, debugInfo } = await getAdminProfileForVerification();
     
-    if (updates.role !== 'super_admin' || updates.status !== 'active') {
-        if (await isLastSuperAdmin(adminId)) {
-            return { error: 'You cannot change the role or status of the last active Super Admin.' };
-        }
-    }
+    const result = {
+        detectedProfile: profile,
+        debugTrace: debugInfo
+    };
     
-    const supabaseAdmin = getSupabaseAdminClient();
-    const { data, error: profileError } = await supabaseAdmin
-      .from('admin_users')
-      .update({
-        full_name: updates.full_name,
-        role: updates.role,
-        status: updates.status,
-        email: updates.email
-      })
-      .eq('id', adminId)
-      .select();
-
-    if (profileError) {
-        return { error: profileError.message };
-    }
-
-    if (updates.email) {
-        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-            adminId,
-            { email: updates.email }
-        ); 
-        if (authError) {
-            return { error: `Auth user update failed: ${authError.message}` };
-        }
-    }
-
-    revalidatePath('/dashboard/admins');
-    return { data };
+    return JSON.stringify(result, null, 2);
 }
 
-export async function addAdmin(adminData: NewAdminData): Promise<{ error?: string, data?: any }> {
-    const currentAdmin = await getCurrentAdminProfile();
-    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
-        return { error: 'Permission denied: Only Super Admins can add new users.' };
-    }
-
-    const supabaseAdmin = getSupabaseAdminClient();
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: adminData.email,
-        password: adminData.password_hash,
-        email_confirm: true,
-    });
-
-    if (authError) {
-        return { error: `Auth Error: ${authError.message}` };
-    }
-
-    const { error: profileError } = await supabaseAdmin.from('admin_users').insert({
-        id: authData.user.id,
-        full_name: adminData.full_name,
-        email: adminData.email,
-        role: adminData.role,
-        status: adminData.status,
-    });
-
-    if (profileError) {
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-        return { error: `Profile Error: ${profileError.message}` };
-    }
-
-    revalidatePath('/dashboard/admins');
-    return { data: 'Admin created successfully.' };
-}
-
-export async function deleteAdmin(adminId: string): Promise<{ error?: string, data?: any }> {
-    const currentAdmin = await getCurrentAdminProfile();
-    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
-        return { error: 'Permission denied: Only Super Admins can delete users.' };
-    }
-
-    if (await isLastSuperAdmin(adminId)) {
-        return { error: 'You cannot delete the last active Super Admin.' };
-    }
-    
-    const supabaseAdmin = getSupabaseAdminClient();
-    const { data, error } = await supabaseAdmin.auth.admin.deleteUser(adminId);
-
-    if (error) {
-        return { error: `Failed to delete user: ${error.message}` };
-    }
-
-    revalidatePath('/dashboard/admins');
-    return { data };
-}
+// Temporär leere Funktionen, um Build-Fehler zu vermeiden
+export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>) { return { error: "Temporarily disabled" } }
+export async function addAdmin(adminData: NewAdminData) { return { error: "Temporarily disabled" } }
+export async function deleteAdmin(adminId: string) { return { error: "Temporarily disabled" } }
