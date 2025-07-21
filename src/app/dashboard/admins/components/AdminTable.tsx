@@ -9,7 +9,7 @@ interface AdminTableProps {
   admins: AdminProfile[]
   loading: boolean
   onUpdate: (adminId: string, updates: Partial<AdminProfile>) => Promise<{ error?: string }>
-  onDelete: (adminId: string) => void
+  onDelete: (adminId:string) => void
   onDataChange: () => void;
 }
 
@@ -25,7 +25,8 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
 
   const handleEditStart = (admin: AdminProfile) => {
     setEditingAdmin(admin.id)
-    setEditForm({ full_name: admin.full_name, role: admin.role, status: admin.status })
+    // Hinzugefügt: email wird nun auch in das Bearbeitungsformular geladen
+    setEditForm({ full_name: admin.full_name, email: admin.email, role: admin.role, status: admin.status })
   }
 
   const handleEditCancel = () => setEditingAdmin(null)
@@ -62,8 +63,27 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
         {admins.map((admin) => (
           <tr key={admin.id}>
             <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm font-medium text-gray-900">{admin.full_name} {admin.id === user?.id && <span className="text-xs text-indigo-600">(You)</span>}</div>
-              <div className="text-sm text-gray-500">{admin.email}</div>
+              {editingAdmin === admin.id ? (
+                <div className="space-y-2">
+                  <input 
+                    type="text" 
+                    value={editForm.full_name || ''} 
+                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                    className="w-full px-2 py-1 border rounded"
+                  />
+                  <input 
+                    type="email" 
+                    value={editForm.email || ''} 
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-2 py-1 border rounded"
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="text-sm font-medium text-gray-900">{admin.full_name} {admin.id === user?.id && <span className="text-xs text-indigo-600">(You)</span>}</div>
+                  <div className="text-sm text-gray-500">{admin.email}</div>
+                </>
+              )}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                {editingAdmin === admin.id ? (
