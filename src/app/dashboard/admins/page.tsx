@@ -40,7 +40,7 @@ export default function AdminsPage() {
 
   const handleAddAdmin = async (adminData: NewAdminData) => {
     const result = await addAdmin(adminData);
-    // KORRIGIERT: Prüft jetzt, ob 'result' existiert, bevor auf 'error' zugegriffen wird
+    // KORRIGIERT: Prüft jetzt, ob 'result' existiert
     if (result && result.error) {
       setError(result.error);
     } else {
