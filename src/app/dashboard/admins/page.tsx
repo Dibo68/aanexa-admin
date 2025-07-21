@@ -92,7 +92,7 @@ export default function AdminsPage() {
 
       {showAddModal && (
         <AddAdminModal
-          key={Date.now()}
+          key={Date.now()} // <-- DIESE ZEILE IST DER FIX
           onClose={() => {
             setError('');
             setShowAddModal(false);
