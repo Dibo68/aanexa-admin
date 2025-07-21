@@ -14,7 +14,7 @@ interface AdminTableProps {
 }
 
 export default function AdminTable({ admins, loading, onUpdate, onDelete, onDataChange }: AdminTableProps) {
-  const { user } = useAuth(); // Holen des aktuell eingeloggten Benutzers
+  const { user } = useAuth();
   const [editingAdmin, setEditingAdmin] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<AdminProfile>>({})
 
@@ -62,27 +62,27 @@ export default function AdminTable({ admins, loading, onUpdate, onDelete, onData
         {admins.map((admin) => (
           <tr key={admin.id}>
             <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm font-medium text-gray-900">{admin.full_name} {admin.id === user?.id && '(You)'}</div>
+              <div className="text-sm font-medium text-gray-900">{admin.full_name} {admin.id === user?.id && <span className="text-xs text-indigo-600">(You)</span>}</div>
               <div className="text-sm text-gray-500">{admin.email}</div>
             </td>
-            <td className="px-6 py-4 whitespace-nowrap">
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                {editingAdmin === admin.id ? (
                 <select value={editForm.role} disabled={isLastActiveSuperAdmin(admin.id)} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })} className="px-2 py-1 border rounded disabled:bg-gray-100">
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
                 </select>
                ) : (
-                <span className="text-sm text-gray-900">{getRoleDisplayName(admin.role)}</span>
+                <span>{getRoleDisplayName(admin.role)}</span>
                )}
             </td>
-            <td className="px-6 py-4 whitespace-nowrap">
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {editingAdmin === admin.id ? (
                 <select value={editForm.status} disabled={isLastActiveSuperAdmin(admin.id)} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })} className="px-2 py-1 border rounded disabled:bg-gray-100">
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               ) : (
-                <span className="capitalize text-sm text-gray-900">{admin.status}</span>
+                <span className="capitalize">{admin.status}</span>
               )}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
