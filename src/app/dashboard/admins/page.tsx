@@ -8,8 +8,10 @@ import AddAdminModal from './components/AddAdminModal'
 import { supabase, AdminProfile } from '@/lib/supabase'
 import { updateAdmin, addAdmin, deleteAdmin } from '@/lib/actions'
 import { NewAdminData } from '@/lib/types'
+import { useAuth } from '@/context/AuthContext'
 
 export default function AdminsPage() {
+  const { user } = useAuth(); // Holen des aktuellen Benutzers
   const [admins, setAdmins] = useState<AdminProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -47,6 +49,10 @@ export default function AdminsPage() {
   }
 
   const handleDeleteAdmin = async (adminId: string) => {
+    if (adminId === user?.id) {
+      alert("You cannot delete your own account.");
+      return;
+    }
     if (window.confirm('Are you sure you want to delete this admin? This action is irreversible.')) {
       const result = await deleteAdmin(adminId);
       if (result.error) {
@@ -87,7 +93,10 @@ export default function AdminsPage() {
       {showAddModal && (
         <AddAdminModal
           key={Date.now()}
-          onClose={() => setShowAddModal(false)}
+          onClose={() => {
+            setError('');
+            setShowAddModal(false);
+          }}
           onAdd={handleAddAdmin}
         />
       )}
