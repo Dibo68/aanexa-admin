@@ -14,7 +14,6 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>
 }
 
-// Einen Standardkontext mit leeren Funktionen und initialen Werten erstellen
 const AuthContext = createContext<AuthContextType>({
   user: null,
   adminProfile: null,
@@ -24,11 +23,11 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -38,36 +37,62 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
-    // Diese Funktion wird bei jeder Änderung des Authentifizierungsstatus aufgerufen (Login, Logout, Initialisierung)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user;
-      setUser(currentUser ?? null);
-
-      if (currentUser) {
-        // Wenn ein Benutzer angemeldet ist, lade sein Admin-Profil
-        const { data: profile } = await getAdminProfile(currentUser.id);
-        setAdminProfile(profile || null);
-      } else {
-        // Wenn kein Benutzer angemeldet ist, setze das Profil auf null
+    const checkInitialSession = async () => {
+      try {
+        // Prüfe die initiale Session beim allerersten Laden der App
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          const { data: profile } = await getAdminProfile(session.user.id);
+          setAdminProfile(profile || null);
+        } else {
+          setUser(null);
+          setAdminProfile(null);
+        }
+      } catch (e) {
+        console.error("Error checking initial session:", e);
+        setUser(null);
         setAdminProfile(null);
+      } finally {
+        // Dies ist der wichtigste Teil: Beende den Ladevorgang in jedem Fall.
+        setLoading(false);
       }
-      
-      // WICHTIG: Beende den Ladezustand, egal was passiert
-      setLoading(false);
-    });
+    };
 
-    // Aufräumfunktion: Beendet den Listener, wenn die Komponente nicht mehr verwendet wird
+    // Führe die initiale Prüfung aus
+    checkInitialSession();
+
+    // Richte danach den Listener ein, der auf zukünftige Änderungen reagiert (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const currentUser = session?.user;
+        setUser(currentUser ?? null);
+
+        if (currentUser) {
+          // Lade das Profil nur, wenn es sich vom aktuellen Zustand unterscheidet
+          if (currentUser.id !== adminProfile?.id) {
+            getAdminProfile(currentUser.id).then(({ data: profile }) => {
+              setAdminProfile(profile || null);
+            });
+          }
+        } else {
+          setAdminProfile(null);
+        }
+        // Setze Loading hier auch auf false, falls die App während einer Auth-Änderung lädt
+        setLoading(false);
+      }
+    );
+
     return () => {
       subscription.unsubscribe();
     };
-  }, []); // Leeres Array sorgt dafür, dass dieser Effekt nur einmal beim Start ausgeführt wird
+  }, []); // Leeres Array stellt sicher, dass dies nur einmal beim Start läuft
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    // Die Weiterleitung wird durch den onAuthStateChange-Listener oben automatisch ausgelöst
-    router.push('/login'); 
+    router.push('/login');
   };
-  
+
   const refreshProfile = async () => {
     if (user) {
       setLoading(true);
