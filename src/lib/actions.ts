@@ -6,9 +6,9 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { NewAdminData } from './types'
 import { AdminProfile } from './supabase'
+import { jwtVerify } from 'jose'
 
 // Helper-Funktion, um den sicheren Supabase-Client mit Admin-Rechten zu erhalten
-// Diesen Client verwenden wir für Aktionen, die höhere Berechtigungen erfordern (User anlegen/löschen)
 const getSupabaseAdminClient = () => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -20,32 +20,44 @@ const getSupabaseAdminClient = () => {
     });
 }
 
-// Diese Funktion ist neu und zentral für die Sicherheit.
-// Sie holt den aktuellen User und sein Profil serverseitig und sicher.
+// Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher auf dem Server zu laden
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-  const cookieStore = cookies()
-  // Dieser Client hat nur die Rechte des angemeldeten Benutzers
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    cookies: {
-        get(name: string) {
-            return cookieStore.get(name)?.value;
-        },
-    },
-  });
+    const cookieStore = cookies();
+    const token = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token'); // Supabase speichert das JWT in diesem Cookie
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return null;
-  }
+    if (!token) {
+        return null;
+    }
 
-  const { data: profile } = await supabase
-    .from('admin_users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-  
-  return profile;
+    try {
+        // Wir benötigen den JWT-Schlüssel aus den Supabase-Einstellungen, um das Token zu verifizieren.
+        const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+        if (!supabaseJwtSecret) {
+            throw new Error('SUPABASE_JWT_SECRET is not set in environment variables.');
+        }
+
+        // Token verifizieren, um die User-ID sicher zu erhalten
+        const { payload } = await jwtVerify(JSON.parse(token.value).access_token, new TextEncoder().encode(supabaseJwtSecret));
+        const userId = payload.sub;
+
+        if (!userId) {
+            return null;
+        }
+
+        const supabase = getSupabaseAdminClient();
+        const { data: profile } = await supabase
+            .from('admin_users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+        
+        return profile;
+    } catch (e) {
+        console.error('Error verifying token or fetching profile:', e);
+        return null;
+    }
 }
+
 
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
     const supabase = getSupabaseAdminClient();
