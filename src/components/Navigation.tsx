@@ -1,3 +1,4 @@
+// src/components/Navigation.tsx
 'use client'
 
 import { useState } from 'react'
@@ -10,14 +11,13 @@ interface NavigationProps {
 }
 
 export default function Navigation({ currentPath }: NavigationProps) {
-  const { adminProfile, signOut } = useAuth()
+  const { user, adminProfile, signOut } = useAuth() // 'user' hinzugefügt
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
     await signOut()
-    // Die Weiterleitung wird vom AuthContext gehandhabt
   }
 
   const menuItems = [
@@ -49,7 +49,6 @@ export default function Navigation({ currentPath }: NavigationProps) {
               <span className="text-xl font-semibold text-gray-900">Admin</span>
             </Link>
             
-            {/* DIESER BLOCK HAT GEFEHLT UND WURDE WIEDERHERGESTELLT */}
             <div className="hidden md:ml-10 md:flex md:space-x-1">
               {menuItems.map((item) => (
                 <Link
@@ -68,7 +67,8 @@ export default function Navigation({ currentPath }: NavigationProps) {
           </div>
 
           <div className="flex items-center">
-            {adminProfile && (
+            {/* GEÄNDERT: Prüft jetzt auf 'user' statt 'adminProfile' für eine stabilere Anzeige */}
+            {user && (
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
@@ -76,16 +76,18 @@ export default function Navigation({ currentPath }: NavigationProps) {
                 >
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
-                      {adminProfile?.full_name?.charAt(0)?.toUpperCase() || 'A'}
+                      {adminProfile?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
                     </span>
                   </div>
                 </button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50">
-                    <div className="px-4 py-3 border-b">
-                      <p className="text-sm font-medium">{adminProfile.full_name}</p>
-                      <p className="text-sm text-gray-500">{adminProfile.email}</p>
-                    </div>
+                    {adminProfile && (
+                      <div className="px-4 py-3 border-b">
+                        <p className="text-sm font-medium truncate">{adminProfile.full_name}</p>
+                        <p className="text-sm text-gray-500 truncate">{adminProfile.email}</p>
+                      </div>
+                    )}
                     <div className="py-1">
                       <Link href="/dashboard/profile" onClick={() => setShowUserMenu(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         My Profile
