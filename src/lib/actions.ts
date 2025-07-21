@@ -20,27 +20,30 @@ const getSupabaseAdminClient = () => {
     });
 }
 
-// KORRIGIERTE Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher zu verifizieren
+// Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher auf dem Server zu verifizieren
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-    const cookieStore = cookies();
+    // KORREKTUR: `await` wird hier benötigt, da cookies() in Next.js 15 asynchron ist.
+    const cookieStore = await cookies(); 
     const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
 
-    if (!tokenCookie) return null;
+    if (!tokenCookie) {
+        return null;
+    }
 
     try {
-        // Das Token ist ein Array von Strings, wir benötigen das access_token aus dem ersten Element.
-        const tokenData = JSON.parse(tokenCookie.value);
-        const accessToken = tokenData[0]?.access_token;
-        if (!accessToken) return null;
-
         const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
-        if (!supabaseJwtSecret) throw new Error('SUPABASE_JWT_SECRET is not set.');
+        if (!supabaseJwtSecret) {
+            throw new Error('SUPABASE_JWT_SECRET is not set in environment variables.');
+        }
 
+        const token = JSON.parse(tokenCookie.value).access_token;
         const secret = new TextEncoder().encode(supabaseJwtSecret);
-        const { payload } = await jwtVerify(accessToken, secret);
+        const { payload } = await jwtVerify(token, secret);
         const userId = payload.sub;
 
-        if (!userId) return null;
+        if (!userId) {
+            return null;
+        }
 
         const supabase = getSupabaseAdminClient();
         const { data: profile } = await supabase
@@ -55,6 +58,7 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
         return null;
     }
 }
+
 
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
     const supabase = getSupabaseAdminClient();
