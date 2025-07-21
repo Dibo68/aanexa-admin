@@ -23,6 +23,7 @@ const getSupabaseAdminClient = () => {
 // Helper-Funktion, um das Profil des aktuell angemeldeten Benutzers sicher auf dem Server zu verifizieren
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
     const cookieStore = cookies();
+    // KORRIGIERT: Das .get() muss auf dem aufgelösten Cookie-Store aufgerufen werden.
     const tokenCookie = cookieStore.get('sb-oorpduqkhfsuqerlcubo-auth-token');
 
     if (!tokenCookie) {
@@ -102,7 +103,6 @@ export async function updateAdmin(adminId: string, updates: Partial<AdminProfile
     }
 
     if (updates.email) {
-        // DIE FEHLENDE KLAMMER WURDE HIER HINZUGEFÜGT
         const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
             adminId,
             { email: updates.email }
