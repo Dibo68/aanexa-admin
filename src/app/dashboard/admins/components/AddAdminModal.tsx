@@ -1,3 +1,4 @@
+// src/app/dashboard/admins/components/AddAdminModal.tsx
 'use client'
 
 import { useState } from 'react'
@@ -37,21 +38,14 @@ export default function AddAdminModal({ onClose, onAdd }: AddAdminModalProps) {
     if (!validateForm()) return
 
     setLoading(true)
-    setErrors({})
-
-    try {
-      await onAdd({
-        full_name: formData.full_name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        password_hash: formData.password,
-        role: formData.role,
-        status: formData.status,
-      })
-    } catch (err: any) {
-      // Fehler werden von der übergeordneten Komponente (page.tsx) angezeigt
-    } finally {
-      setLoading(false)
-    }
+    await onAdd({
+      full_name: formData.full_name.trim(),
+      email: formData.email.trim().toLowerCase(),
+      password_hash: formData.password,
+      role: formData.role,
+      status: formData.status,
+    })
+    setLoading(false)
   }
 
   return (
@@ -63,31 +57,28 @@ export default function AddAdminModal({ onClose, onAdd }: AddAdminModalProps) {
         </div>
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-4 space-y-4">
-            {errors.general && <p className="text-red-600 text-sm">{errors.general}</p>}
-            
-            {/* ... Formularfelder (bleiben gleich) ... */}
             <div>
-              <label htmlFor="full_name">Full Name</label>
+              <label htmlFor="full_name" className="text-sm font-medium text-gray-700">Full Name</label>
               <input id="full_name" type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
               {errors.full_name && <p className="text-sm text-red-600">{errors.full_name}</p>}
             </div>
             <div>
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</label>
               <input id="email" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
               {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
             </div>
             <div>
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</for-password>
               <input id="password" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
               {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
             </div>
             <div>
-              <label htmlFor="confirmPassword">Confirm Password</label>
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</label>
               <input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="mt-1 w-full px-3 py-2 border rounded"/>
               {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
             <div>
-              <label htmlFor="role">Role</label>
+              <label htmlFor="role" className="text-sm font-medium text-gray-700">Role</label>
               <select id="role" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})} className="mt-1 w-full px-3 py-2 border rounded">
                 <option value="admin">Admin</option>
                 <option value="super_admin">Super Admin</option>
