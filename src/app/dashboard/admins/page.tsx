@@ -4,59 +4,66 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import AddAdminModal from './components/AddAdminModal'
-import AdminTable from './components/AdminTable'
+import { createClient } from '@/utils/supabase/client'
+import { AdminTable } from '@/components/AdminTable'
+import { AddAdminModal } from '@/components/AddAdminModal'
 
 export default function AdminPage() {
-  const { session, loading } = useAuth()
+  const { session } = useAuth()
+  const supabase = createClient()
+
   const [admins, setAdmins] = useState<any[]>([])
   const [refresh, setRefresh] = useState(false)
+  const [error, setError] = useState('')
 
-  // Fetch admin list
+  const fetchAdmins = async () => {
+    if (!session) return
+
+    const { data, error } = await supabase.from('admin_users').select('*')
+
+    if (error) {
+      console.error('Error fetching admins:', error.message)
+      setError('Failed to fetch admins')
+    } else {
+      setAdmins(data || [])
+    }
+  }
+
   useEffect(() => {
-    const fetchAdmins = async () => {
-      const res = await fetch('/api/admin/list', {
+    fetchAdmins()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, refresh])
+
+  const handleUpdateAdmin = async (adminId: string, values: any) => {
+    try {
+      const res = await fetch('/api/admin/update', {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session?.access_token}`
-        }
+          Authorization: `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: adminId, update: values })
       })
 
-      const data = await res.json()
-      setAdmins(data.admins ?? [])
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message || 'Update failed')
+      }
+
+      setRefresh(prev => !prev)
+    } catch (err: any) {
+      console.error('Update failed:', err.message)
+      setError(err.message)
     }
-
-    if (session && !loading) fetchAdmins()
-  }, [session, loading, refresh])
-
-  async function handleUpdateAdmin(adminId: string, values: any) {
-    const res = await fetch('/api/admin/update', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session?.access_token}`
-      },
-      body: JSON.stringify({
-        id: adminId,
-        update: values
-      })
-    })
-
-    if (!res.ok) {
-      const error = await res.json()
-      alert('Error: ' + error.message)
-      return
-    }
-
-    alert('Admin updated successfully')
-    setRefresh(prev => !prev)
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Administrators</h1>
         <AddAdminModal onSuccess={() => setRefresh(prev => !prev)} />
       </div>
+      {error && <p className="text-red-500">{error}</p>}
       <AdminTable admins={admins} onUpdate={handleUpdateAdmin} />
     </div>
   )
