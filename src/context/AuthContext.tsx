@@ -1,53 +1,46 @@
 // Pfad: src/context/AuthContext.tsx
+
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Session, User } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/client'
+import { Session, User } from '@supabase/supabase-js'
 
-type AdminRole = 'admin' | 'super_admin' | null
-
-type AuthContextType = {
+export type AuthContextType = {
   user: User | null
   session: Session | null
-  adminProfile: {
-    role: AdminRole
-  } | null
+  adminProfile: any | null
   refreshProfile: () => Promise<void>
-  signOut: () => void
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const supabase = createClient()
+
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [adminProfile, setAdminProfile] = useState<{ role: AdminRole } | null>(null)
+  const [adminProfile, setAdminProfile] = useState<any | null>(null)
 
   useEffect(() => {
-    const cookies = document.cookie.split(';').map(c => c.trim().split('='))
-    const access = cookies.find(c => c[0] === 'supabase-access-token')?.[1]
-    const refresh = cookies.find(c => c[0] === 'supabase-refresh-token')?.[1]
-
-    if (access && refresh) {
-      supabase.auth.setSession({ access_token: access, refresh_token: refresh })
+    const getSession = async () => {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+      setSession(session)
+      setUser(session?.user ?? null)
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setUser(data.session?.user ?? null)
-    })
+    getSession()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
     })
 
     return () => {
-      subscription.unsubscribe()
+      listener?.subscription.unsubscribe()
     }
   }, [])
 
@@ -55,26 +48,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return
     const { data, error } = await supabase
       .from('admin_users')
-      .select('role')
+      .select('*')
       .eq('id', user.id)
       .single()
 
-    if (!error && data) {
-      setAdminProfile({ role: data.role })
+    if (!error) {
+      setAdminProfile(data)
     } else {
-      setAdminProfile(null)
+      console.error('Error fetching admin profile:', error.message)
     }
   }
 
-  const signOut = () => {
-    supabase.auth.signOut()
+  const signOut = async () => {
+    await supabase.auth.signOut()
     setUser(null)
     setSession(null)
     setAdminProfile(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, adminProfile, refreshProfile, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        adminProfile,
+        refreshProfile,
+        signOut
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -82,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
