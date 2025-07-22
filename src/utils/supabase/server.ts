@@ -1,44 +1,37 @@
 // src/utils/supabase/server.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
 
-export async function createClient() {
-  const cookieStore = await cookies()
+// Wichtiger Hinweis: Dieser Code basiert auf den neuesten Standards für @supabase/ssr
+// und Next.js 15.4, wie in der technischen Referenz beschrieben.
+
+export async function createClient(cookieStore?: ReadonlyRequestCookies) {
+  // Wenn kein cookieStore übergeben wird, holen wir ihn uns selbst.
+  // Das sorgt für maximale Kompatibilität.
+  const store = cookieStore || (await cookies())
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        // Die neue, korrekte Methode: getAll verwenden.
+        getAll() {
+          return store.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
+        // Die neue, korrekte Methode: setAll verwenden.
+        setAll(cookiesToSet) {
           try {
-            // HIER IST DIE KORREKTUR:
-            // Wir fügen domain und path hinzu, damit das Cookie
-            // für die Subdomain admin.aanexa.com korrekt gesetzt wird.
-            cookieStore.set({ 
-              name, 
-              value, 
-              ...options, 
-              path: '/', // Gilt für die gesamte Website
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Die 'as any' Konvertierung ist hier manchmal nötig, 
+              // da die Typen zwischen Next.js und Supabase leicht abweichen können.
+              store.set(name, value, options as any)
             })
           } catch (error) {
-            // Fehlerbehandlung für Server Components
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            // Auch hier fügen wir die Optionen hinzu.
-            cookieStore.set({ 
-              name, 
-              value: '', 
-              ...options, 
-              path: '/',
-            })
-          } catch (error) {
-            // Fehlerbehandlung für Server Components
+            // Dieser Fehler tritt auf, wenn eine Server Action versucht,
+            // ein Cookie zu setzen, nachdem die Header bereits gesendet wurden.
+            // In unserem Fall ist das unproblematisch, da die Middleware die Session aktuell hält.
           }
         },
       },
