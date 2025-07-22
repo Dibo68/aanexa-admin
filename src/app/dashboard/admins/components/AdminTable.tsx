@@ -70,3 +70,29 @@ export default function AdminTable({
                 />
               ) : (
                 admin.name
+              )}
+            </td>
+            <td className="border p-2">
+              {editingAdmin === admin.id ? (
+                <input
+                  value={editForm.email ?? ''}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                />
+              ) : (
+                admin.email
+              )}
+            </td>
+            <td className="border p-2">{admin.role}</td>
+            <td className="border p-2">
+              {editingAdmin === admin.id ? (
+                <button onClick={handleSave}>Save</button>
+              ) : (
+                <button onClick={() => handleEditClick(admin)}>Edit</button>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
