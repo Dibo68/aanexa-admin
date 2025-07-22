@@ -1,17 +1,14 @@
 // src/middleware.ts
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Wir erstellen eine leere Antwort, die wir im Laufe des Prozesses anpassen.
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
-  // Erstellen des Supabase-Clients direkt in der Middleware mit einer
-  // speziellen Konfiguration, die Cookies manuell handhabt.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -20,10 +17,7 @@ export async function middleware(request: NextRequest) {
         get(name: string) {
           return request.cookies.get(name)?.value
         },
-        set(name: string, value: string, options) {
-          // Wichtig: Wir müssen sowohl das Cookie in der eingehenden Anfrage
-          // für den nächsten Client-Aufruf aktualisieren, als auch in der
-          // ausgehenden Antwort, die an den Browser gesendet wird.
+        set(name: string, value: string, options: CookieOptions) {
           request.cookies.set({ name, value, ...options })
           response = NextResponse.next({
             request: {
@@ -32,29 +26,29 @@ export async function middleware(request: NextRequest) {
           })
           response.cookies.set({ name, value, ...options })
         },
-        remove(name: string, options) {
-          // Dasselbe gilt für das Löschen von Cookies.
+        remove(name: string, options: CookieOptions) {
+          // KORREKTUR: Die 'remove'-Methode wird durch 'set' mit einem
+          // leeren Wert und einem abgelaufenen Datum ersetzt.
+          // Dies ist die korrekte Art, ein Cookie zu löschen.
           request.cookies.set({ name, value: '', ...options })
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.remove(name, options)
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  // Dieser Aufruf ist entscheidend. Er prüft die Session des Benutzers.
-  // Wenn das Token abgelaufen ist, wird es hier automatisch aktualisiert.
-  // Die 'set'-Funktion oben sorgt dann dafür, dass das neue Token an den Browser gesendet wird.
+  // Die Session wird für jede Anfrage überprüft und bei Bedarf aktualisiert.
   await supabase.auth.getUser()
 
   return response
 }
 
-// Der Konfigurationsblock bleibt derselbe.
+// Die Konfiguration bleibt unverändert.
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
