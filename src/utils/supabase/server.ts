@@ -1,15 +1,20 @@
 // Pfad: src/utils/supabase/server.ts
 
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 export async function createClient() {
   const cookieStore = await cookies()
+  const headerStore = headers()
+  const authHeader = headerStore.get('authorization') // z. B. "Bearer abc123..."
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      headers: {
+        Authorization: authHeader ?? '',
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll()
@@ -22,7 +27,7 @@ export async function createClient() {
           } catch (err) {
             console.warn('[Supabase Server Client] Cookie setzen fehlgeschlagen:', err)
           }
-        }
+        },
       }
     }
   )
