@@ -2,9 +2,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// KORREKTUR: Die Funktion wird 'async' gemacht
 export async function createClient() {
-  // KORREKTUR: Der Aufruf von cookies() wird 'awaited'
   const cookieStore = await cookies()
 
   return createServerClient(
@@ -17,18 +15,30 @@ export async function createClient() {
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options })
+            // HIER IST DIE KORREKTUR:
+            // Wir fügen domain und path hinzu, damit das Cookie
+            // für die Subdomain admin.aanexa.com korrekt gesetzt wird.
+            cookieStore.set({ 
+              name, 
+              value, 
+              ...options, 
+              path: '/', // Gilt für die gesamte Website
+            })
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing user sessions.
+            // Fehlerbehandlung für Server Components
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options })
+            // Auch hier fügen wir die Optionen hinzu.
+            cookieStore.set({ 
+              name, 
+              value: '', 
+              ...options, 
+              path: '/',
+            })
           } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing user sessions.
+            // Fehlerbehandlung für Server Components
           }
         },
       },
