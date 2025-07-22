@@ -1,47 +1,62 @@
 // src/middleware.ts
-import { type NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  try {
-    // Dieser Response wird benötigt, um die Cookies nach der Überprüfung
-    // an den Browser zurückzugeben.
-    const response = NextResponse.next({
-      request: {
-        headers: new Headers(request.headers),
+  // Wir erstellen eine leere Antwort, die wir im Laufe des Prozesses anpassen.
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  // Erstellen des Supabase-Clients direkt in der Middleware mit einer
+  // speziellen Konfiguration, die Cookies manuell handhabt.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options) {
+          // Wichtig: Wir müssen sowohl das Cookie in der eingehenden Anfrage
+          // für den nächsten Client-Aufruf aktualisieren, als auch in der
+          // ausgehenden Antwort, die an den Browser gesendet wird.
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options) {
+          // Dasselbe gilt für das Löschen von Cookies.
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.remove(name, options)
+        },
       },
-    })
+    }
+  )
 
-    // Wir erstellen einen Supabase-Client, der speziell für die
-    // Middleware-Umgebung konfiguriert ist.
-    const supabase = await createClient(request.cookies)
+  // Dieser Aufruf ist entscheidend. Er prüft die Session des Benutzers.
+  // Wenn das Token abgelaufen ist, wird es hier automatisch aktualisiert.
+  // Die 'set'-Funktion oben sorgt dann dafür, dass das neue Token an den Browser gesendet wird.
+  await supabase.auth.getUser()
 
-    // Dies ist der wichtigste Schritt: Wir prüfen die aktuelle Session.
-    // Dieser Aufruf aktualisiert automatisch das Auth-Token, wenn es abgelaufen ist.
-    await supabase.auth.getSession()
-
-    return response
-  } catch (e) {
-    // Falls ein Fehler auftritt, leiten wir die Anfrage einfach weiter.
-    return NextResponse.next({
-      request: {
-        headers: new Headers(request.headers),
-      },
-    })
-  }
+  return response
 }
 
-// Hier legen wir fest, für welche Routen die Middleware aktiv sein soll.
-// Wir lassen sie für alle Routen laufen, um eine konsistente Session zu gewährleisten.
+// Der Konfigurationsblock bleibt derselbe.
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
