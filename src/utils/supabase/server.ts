@@ -13,8 +13,6 @@ export async function createClient() {
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        // Wir benötigen hier keine set/remove-Funktionen mehr, da die
-        // Middleware diese Aufgabe für die gesamte Anwendung übernimmt.
       },
     }
   )
