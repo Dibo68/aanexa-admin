@@ -1,108 +1,27 @@
-// src/app/dashboard/admins/page.tsx
-'use client'
+// Pfad: src/app/dashboard/admins/page.tsx
 
-import { useState, useEffect, useCallback } from 'react'
-import Navigation from '@/components/Navigation'
-import AdminTable from './components/AdminTable'
-import AddAdminModal from './components/AddAdminModal'
-import { supabase, AdminProfile } from '@/lib/supabase'
-import { updateAdmin, addAdmin, deleteAdmin } from '@/lib/actions'
-import { NewAdminData } from '@/lib/types'
 import { useAuth } from '@/context/AuthContext'
 
-export default function AdminsPage() {
-  const { user, adminProfile } = useAuth();
-  const [admins, setAdmins] = useState<AdminProfile[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [error, setError] = useState('')
+async function handleSaveAdmin(adminId: string, values: any) {
+  const { session } = useAuth()
 
-  const fetchAdmins = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('admin_users')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (fetchError) throw fetchError;
-      setAdmins(data || []);
-    } catch (err: any) {
-      setError('Could not fetch administrator data.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const res = await fetch('/api/admin/update', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token}` // Token mitgeben
+    },
+    body: JSON.stringify({
+      id: adminId,
+      update: values
+    })
+  })
 
-  useEffect(() => {
-    fetchAdmins();
-  }, [fetchAdmins]);
-
-  const handleAddAdmin = async (adminData: NewAdminData) => {
-    const result = await addAdmin(adminData);
-    if (result && result.error) {
-      setError(result.error);
-    } else {
-      setShowAddModal(false);
-      fetchAdmins();
-    }
+  if (!res.ok) {
+    const error = await res.json()
+    alert('Fehler: ' + error.message)
+    return
   }
 
-  const handleDeleteAdmin = async (adminId: string) => {
-    if (adminId === user?.id) {
-      alert("You cannot delete your own account.");
-      return;
-    }
-    if (window.confirm('Are you sure you want to delete this admin? This action is irreversible.')) {
-      const result = await deleteAdmin(adminId);
-      if (result && result.error) {
-        setError(result.error);
-      } else {
-        fetchAdmins();
-      }
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <Navigation currentPath="/dashboard/admins" />
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Management</h1>
-            <p className="text-gray-600 mt-1">Manage administrator accounts and permissions.</p>
-          </div>
-          {adminProfile?.role === 'super_admin' && (
-            <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Add Admin
-            </button>
-          )}
-        </div>
-        
-        {error && <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
-
-        <div className="bg-white shadow-md rounded-lg">
-          <AdminTable
-            admins={admins}
-            loading={loading}
-            onUpdate={updateAdmin}
-            onDelete={handleDeleteAdmin}
-            onDataChange={fetchAdmins}
-            currentUserRole={adminProfile?.role}
-          />
-        </div>
-      </main>
-
-      {showAddModal && (
-        <AddAdminModal
-          key={Date.now()}
-          onClose={() => {
-            setError('');
-            setShowAddModal(false);
-          }}
-          onAdd={handleAddAdmin}
-        />
-      )}
-    </div>
-  )
+  alert('Admin erfolgreich gespeichert')
 }
