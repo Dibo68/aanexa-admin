@@ -21,8 +21,7 @@ const getSupabaseAdminClient = () => {
 
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
     const cookieStore = await cookies();
-    // Der Cookie-Name wurde nach unserer letzten Debugging-Session angepasst
-    const tokenCookie = cookieStore.get('aanexa-admin-auth-token'); 
+    const tokenCookie = cookieStore.get(`sb-${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID}-auth-token`);
 
     if (!tokenCookie) return null;
 
@@ -30,8 +29,12 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
         const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
         if (!supabaseJwtSecret) throw new Error('SUPABASE_JWT_SECRET is not set.');
 
+        const tokenData = JSON.parse(tokenCookie.value);
+        const accessToken = Array.isArray(tokenData) ? tokenData[0]?.access_token : tokenData.access_token;
+        if (!accessToken) return null;
+
         const secret = new TextEncoder().encode(supabaseJwtSecret);
-        const { payload } = await jwtVerify(tokenCookie.value, secret);
+        const { payload } = await jwtVerify(accessToken, secret);
         const userId = payload.sub;
 
         if (!userId) return null;
