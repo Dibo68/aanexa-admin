@@ -7,16 +7,16 @@ import { createClient } from '@supabase/supabase-js'
 import { NewAdminData } from './types'
 import { AdminProfile } from './supabase'
 
-// Dieser Admin-Client wird für Aktionen mit erhöhten Rechten benötigt
 const getSupabaseAdminClient = () => {
     return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
     );
 }
 
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-    const supabase = createServerClient();
+    const supabase = await createServerClient(); // KORREKTUR: await hinzugefügt
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) return null;
@@ -31,7 +31,7 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
 }
 
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
-    const supabase = createServerClient();
+    const supabase = await createServerClient(); // KORREKTUR: await hinzugefügt
     const { data, count } = await supabase
         .from('admin_users')
         .select('id', { count: 'exact' })
