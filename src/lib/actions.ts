@@ -1,13 +1,12 @@
 // src/lib/actions.ts
 'use server'
 
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { NewAdminData } from './types'
 import { AdminProfile } from './supabase'
-import { createClient } from '@supabase/supabase-js'
-
+import { jwtVerify } from 'jose'
 
 const getSupabaseAdminClient = () => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,39 +19,39 @@ const getSupabaseAdminClient = () => {
     });
 }
 
-
-// Helper-Funktion, um das Profil des aktuellen Benutzers zu holen
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value
-                },
-            },
-        }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
+    const cookieStore = await cookies();
+    // Der Cookie-Name wurde nach unserer letzten Debugging-Session angepasst
+    const tokenCookie = cookieStore.get('aanexa-admin-auth-token'); 
 
-    if (!user) return null;
+    if (!tokenCookie) return null;
 
-    // Wir verwenden hier den Admin-Client, um RLS-Regeln zu umgehen, falls nötig
-    const supabaseAdmin = getSupabaseAdminClient();
-    const { data: profile } = await supabaseAdmin
-        .from('admin_users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-    
-    return profile;
+    try {
+        const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+        if (!supabaseJwtSecret) throw new Error('SUPABASE_JWT_SECRET is not set.');
+
+        const secret = new TextEncoder().encode(supabaseJwtSecret);
+        const { payload } = await jwtVerify(tokenCookie.value, secret);
+        const userId = payload.sub;
+
+        if (!userId) return null;
+
+        const supabase = getSupabaseAdminClient();
+        const { data: profile } = await supabase
+            .from('admin_users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+        
+        return profile;
+    } catch (e) {
+        return null;
+    }
 }
 
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
-    const supabaseAdmin = getSupabaseAdminClient();
-    const { data, count, error } = await supabaseAdmin
+    const supabase = getSupabaseAdminClient();
+    const { data, count, error } = await supabase
         .from('admin_users')
         .select('id', { count: 'exact' })
         .eq('role', 'super_admin')
@@ -77,27 +76,15 @@ export async function updateAdmin(adminId: string, updates: Partial<AdminProfile
     const supabaseAdmin = getSupabaseAdminClient();
     const { data, error: profileError } = await supabaseAdmin
       .from('admin_users')
-      .update({
-        full_name: updates.full_name,
-        role: updates.role,
-        status: updates.status,
-        email: updates.email
-      })
+      .update({ full_name: updates.full_name, role: updates.role, status: updates.status, email: updates.email })
       .eq('id', adminId)
       .select();
 
-    if (profileError) {
-        return { error: profileError.message };
-    }
+    if (profileError) { return { error: profileError.message }; }
 
     if (updates.email) {
-        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-            adminId,
-            { email: updates.email }
-        ); 
-        if (authError) {
-            return { error: `Auth user update failed: ${authError.message}` };
-        }
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(adminId, { email: updates.email }); 
+        if (authError) { return { error: `Auth user update failed: ${authError.message}` }; }
     }
 
     revalidatePath('/dashboard/admins');
@@ -117,9 +104,7 @@ export async function addAdmin(adminData: NewAdminData): Promise<{ error?: strin
         email_confirm: true,
     });
 
-    if (authError) {
-        return { error: `Auth Error: ${authError.message}` };
-    }
+    if (authError) { return { error: `Auth Error: ${authError.message}` }; }
 
     const { error: profileError } = await supabaseAdmin.from('admin_users').insert({
         id: authData.user.id,
@@ -151,15 +136,8 @@ export async function deleteAdmin(adminId: string): Promise<{ error?: string, da
     const supabaseAdmin = getSupabaseAdminClient();
     const { data, error } = await supabaseAdmin.auth.admin.deleteUser(adminId);
 
-    if (error) {
-        return { error: `Failed to delete user: ${error.message}` };
-    }
+    if (error) { return { error: `Failed to delete user: ${error.message}` }; }
 
     revalidatePath('/dashboard/admins');
     return { data };
-}
-
-// Wir lassen die leere Debug-Funktion da, damit der Build nicht fehlschlägt
-export async function runServerDebug(): Promise<{ error?: string, data?: string }> {
-    return { data: "Debug page is now disabled. Please remove it." };
 }
