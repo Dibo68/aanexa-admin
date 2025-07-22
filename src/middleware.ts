@@ -3,12 +3,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const response = NextResponse.next()
 
+  // Erstellt einen Supabase-Client, der Cookies in Server-Umgebungen lesen und schreiben kann.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -18,37 +15,21 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
           response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          // KORREKTUR: Die 'remove'-Methode wird durch 'set' mit einem
-          // leeren Wert und einem abgelaufenen Datum ersetzt.
-          // Dies ist die korrekte Art, ein Cookie zu löschen.
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
           response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  // Die Session wird für jede Anfrage überprüft und bei Bedarf aktualisiert.
-  await supabase.auth.getUser()
+  // Aktualisiert die Session des Benutzers. Läuft bei jeder Anfrage.
+  await supabase.auth.getSession()
 
   return response
 }
 
-// Die Konfiguration bleibt unverändert.
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
