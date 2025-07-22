@@ -4,8 +4,8 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { AddAdminModal } from './components/AddAdminModal'
-import { AdminTable } from './components/AdminTable'
+import AddAdminModal from './components/AddAdminModal'
+import AdminTable from './components/AdminTable'
 
 export default function AdminPage() {
   const { session, loading } = useAuth()
