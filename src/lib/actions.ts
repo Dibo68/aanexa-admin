@@ -21,7 +21,7 @@ const getSupabaseAdminClient = () => {
 
 async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
     const cookieStore = await cookies();
-    const tokenCookie = cookieStore.get(`sb-${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID}-auth-token`);
+    const tokenCookie = cookieStore.get('aanexa-admin-auth-token'); 
 
     if (!tokenCookie) return null;
 
@@ -29,12 +29,8 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
         const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
         if (!supabaseJwtSecret) throw new Error('SUPABASE_JWT_SECRET is not set.');
 
-        const tokenData = JSON.parse(tokenCookie.value);
-        const accessToken = Array.isArray(tokenData) ? tokenData[0]?.access_token : tokenData.access_token;
-        if (!accessToken) return null;
-
         const secret = new TextEncoder().encode(supabaseJwtSecret);
-        const { payload } = await jwtVerify(accessToken, secret);
+        const { payload } = await jwtVerify(tokenCookie.value, secret);
         const userId = payload.sub;
 
         if (!userId) return null;
@@ -54,16 +50,17 @@ async function getCurrentAdminProfile(): Promise<AdminProfile | null> {
 
 const isLastSuperAdmin = async (adminId: string): Promise<boolean> => {
     const supabase = getSupabaseAdminClient();
-    const { data, count, error } = await supabase
+    const { data, count } = await supabase
         .from('admin_users')
         .select('id', { count: 'exact' })
         .eq('role', 'super_admin')
         .eq('status', 'active');
-    if (error) return true;
+    
     const isAdminAmongThem = !!data?.some(admin => admin.id === adminId);
     return count === 1 && isAdminAmongThem;
 };
 
+// JEDE FUNKTION GIBT JETZT KORREKT EIN OBJEKT ZURÜCK
 export async function updateAdmin(adminId: string, updates: Partial<AdminProfile>): Promise<{ error?: string, data?: any }> {
     const currentAdmin = await getCurrentAdminProfile();
     if (!currentAdmin || currentAdmin.role !== 'super_admin') {
