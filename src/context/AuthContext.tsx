@@ -1,77 +1,54 @@
-// src/context/AuthContext.tsx
+// Pfad: src/context/AuthContext.tsx
+
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/client'
-import { AdminProfile, getAdminProfile } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import type { Session } from '@supabase/supabase-js'
 
-interface AuthContextType {
-  user: User | null
-  adminProfile: AdminProfile | null
+type AuthContextType = {
+  session: Session | null
   loading: boolean
-  signOut: () => Promise<void>
-  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  adminProfile: null,
-  loading: true,
-  signOut: async () => {},
-  refreshProfile: async () => {}
-});
+  session: null,
+  loading: true
+})
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // ⬇️ HIER wird der Cookie-Token übernommen und Session gesetzt
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const currentUser = session?.user || null;
-        setUser(currentUser);
-        if (currentUser) {
-          const { data } = await getAdminProfile(currentUser.id);
-          setAdminProfile(data || null);
-        } else {
-          setAdminProfile(null);
+    const cookies = document.cookie.split(';').map(c => c.trim().split('='))
+    const access = cookies.find(c => c[0] === 'supabase-access-token')?.[1]
+    const refresh = cookies.find(c => c[0] === 'supabase-refresh-token')?.[1]
+
+    if (access && refresh) {
+      supabase.auth.setSession({
+        access_token: access,
+        refresh_token: refresh
+      }).then(({ data, error }) => {
+        if (!error) {
+          setSession(data.session ?? null)
         }
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
-  const refreshProfile = async () => {
-    if (user) {
-      const { data } = await getAdminProfile(user.id);
-      setAdminProfile(data || null);
+        setLoading(false)
+      })
+    } else {
+      setLoading(false)
     }
-  };
+  }, [])
 
-  const value = { user, adminProfile, loading, signOut, refreshProfile };
+  return (
+    <AuthContext.Provider value={{ session, loading }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+export function useAuth() {
+  return useContext(AuthContext)
+}
